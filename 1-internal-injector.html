@@ -128,15 +128,15 @@
   });
 
   /// instantiate
-  var service =injector.instantiate(function(b) {
+  var s1 = injector.instantiate(function(b) {
     var s = {};
     s.test = function(v) {
       console.log(b(v));
     };
     return s;
   });
-  console.log(service);
-  service.test('test instantiate');
+  console.log(s1);
+  s1.test('test instantiate');
 </script>
 </body>
 

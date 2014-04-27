@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>AngularJS Injector</title>
+  <script src="ngsrc/minErr.js"></script>
+  <script src="ngsrc/Angular.js"></script>
+  <script src="ngsrc/apis.js"></script>
+  <script src="ngsrc/auto/injector.js"></script>
+</head>
+
+<body>
+<script>
+function createInjector(modulesToLoad) {
+  var INSTANTIATING = {},
+    providerSuffix = 'Provider',
+    path = [],
+    loadedModules = new HashMap(),
+    providerCache = {
+      $provide: {
+        provider: supportObject(provider),
+        factory: supportObject(factory),
+        service: supportObject(service),
+        value: supportObject(value),
+        constant: supportObject(constant),
+        decorator: decorator
+      }
+    },
+    providerInjector = (providerCache.$injector =
+      createInternalInjector(providerCache, function() {
+        throw $injectorMinErr('unpr', "Unknown provider: {0}", path.join(' <- '));
+      })),
+    instanceCache = {},
+    instanceInjector = (instanceCache.$injector =
+      createInternalInjector(instanceCache, function(servicename) {
+        var provider = providerInjector.get(servicename + providerSuffix);
+        return instanceInjector.invoke(provider.$get, provider);
+      }));
+
+
+  forEach(loadModules(modulesToLoad), function(fn) { instanceInjector.invoke(fn || noop); });
+
+  // chylvina: I change this to test providerInjector
+  return {'providerInjector':providerInjector,'instanceInjector':instanceInjector};
+
+  ////////////////////////////////////
+  // $provider
+  ////////////////////////////////////
+
+  function supportObject(delegate) {
+    return function(key, value) {
+      if (isObject(key)) {
+        forEach(key, reverseParams(delegate));
+      } else {
+        return delegate(key, value);
+      }
+    };
+  }
+
+  function provider(name, provider_) {
+    assertNotHasOwnProperty(name, 'service');
+
+    // chylvina: here is an chance to inject provider
+    // we can treat provider as classes and use their api as class's static method
+    // refer to: $CompileProvider (angular.js # line 5280)
+    if (isFunction(provider_) || isArray(provider_)) {
+      provider_ = providerInjector.instantiate(provider_);
+    }
+    // chylvina: $get is required
+    if (!provider_.$get) {
+      throw $injectorMinErr('pget', "Provider '{0}' must define $get factory method.", name);
+    }
+    return providerCache[name + providerSuffix] = provider_;
+  }
+
+  function factory(name, factoryFn) { return provider(name, { $get: factoryFn }); }
+
+  function service(name, constructor) {
+    return factory(name, ['$injector', function($injector) {
+      return $injector.instantiate(constructor);
+    }]);
+  }
+
+  function value(name, val) { return factory(name, valueFn(val)); }
+
+  function constant(name, value) {
+    assertNotHasOwnProperty(name, 'constant');
+    providerCache[name] = value;
+    instanceCache[name] = value;
+  }
+
+  function decorator(serviceName, decorFn) {
+    var origProvider = providerInjector.get(serviceName + providerSuffix),
+      orig$get = origProvider.$get;
+
+    origProvider.$get = function() {
+      var origInstance = instanceInjector.invoke(orig$get, origProvider);
+      return instanceInjector.invoke(decorFn, null, {$delegate: origInstance});
+    };
+  }
+
+  ////////////////////////////////////
+  // Module Loading
+  ////////////////////////////////////
+  function loadModules(modulesToLoad){
+    var runBlocks = [], moduleFn, invokeQueue, i, ii;
+    forEach(modulesToLoad, function(module) {
+      if (loadedModules.get(module)) return;
+      loadedModules.put(module, true);
+
+      try {
+        if (isString(module)) {
+          moduleFn = angularModule(module);
+          runBlocks = runBlocks.concat(loadModules(moduleFn.requires)).concat(moduleFn._runBlocks);
+
+          for(invokeQueue = moduleFn._invokeQueue, i = 0, ii = invokeQueue.length; i < ii; i++) {
+            var invokeArgs = invokeQueue[i],
+              provider = providerInjector.get(invokeArgs[0]);
+
+            provider[invokeArgs[1]].apply(provider, invokeArgs[2]);
+          }
+        } else if (isFunction(module)) {
+          runBlocks.push(providerInjector.invoke(module));
+        } else if (isArray(module)) {
+          runBlocks.push(providerInjector.invoke(module));
+        } else {
+          assertArgFn(module, 'module');
+        }
+      } catch (e) {
+        if (isArray(module)) {
+          module = module[module.length - 1];
+        }
+        if (e.message && e.stack && e.stack.indexOf(e.message) == -1) {
+          // Safari & FF's stack traces don't contain error.message content
+          // unlike those of Chrome and IE
+          // So if stack doesn't contain message, we create a new string that contains both.
+          // Since error.stack is read-only in Safari, I'm overriding e and not e.stack here.
+          /* jshint -W022 */
+          e = e.message + '\n' + e.stack;
+        }
+        throw $injectorMinErr('modulerr', "Failed to instantiate module {0} due to:\n{1}",
+          module, e.stack || e.message || e);
+      }
+    });
+    return runBlocks;
+  }
+
+  ////////////////////////////////////
+  // internal Injector
+  ////////////////////////////////////
+
+  function createInternalInjector(cache, factory) {
+
+    function getService(serviceName) {
+      if (cache.hasOwnProperty(serviceName)) {
+        if (cache[serviceName] === INSTANTIATING) {
+          throw $injectorMinErr('cdep', 'Circular dependency found: {0}', path.join(' <- '));
+        }
+
+        // the instance is cached, so a service is a singleton
+        return cache[serviceName];
+      } else {
+        try {
+          path.unshift(serviceName);
+          cache[serviceName] = INSTANTIATING;
+          // chylvian:
+          // 1. instanceInjector.get('$rootScope')
+          // 2. factory('$rootScope')
+          // 3. providerInjector.get('$rootScopeProvider')
+          // 4. instanceInjector.cache['$rootScope'] = the $rootScope instance
+          return cache[serviceName] = factory(serviceName);
+        } catch (err) {
+          if (cache[serviceName] === INSTANTIATING) {
+            delete cache[serviceName];
+          }
+          throw err;
+        } finally {
+          path.shift();
+        }
+      }
+    }
+
+    function invoke(fn, self, locals){
+      var args = [],
+        $inject = annotate(fn),
+        length, i,
+        key;
+
+      for(i = 0, length = $inject.length; i < length; i++) {
+        key = $inject[i];
+        if (typeof key !== 'string') {
+          throw $injectorMinErr('itkn',
+            'Incorrect injection token! Expected service name as string, got {0}', key);
+        }
+        args.push(
+            locals && locals.hasOwnProperty(key)
+            ? locals[key]
+            : getService(key)
+        );
+      }
+      if (!fn.$inject) {
+        // this means that we must be an array.
+        fn = fn[length];
+      }
+
+      // http://jsperf.com/angularjs-invoke-apply-vs-switch
+      // #5388
+      return fn.apply(self, args);
+    }
+
+    function instantiate(Type, locals) {
+      var Constructor = function() {},
+        instance, returnedValue;
+
+      // Check if Type is annotated and use just the given function at n-1 as parameter
+      // e.g. someModule.factory('greeter', ['$window', function(renamed$window) {}]);
+      Constructor.prototype = (isArray(Type) ? Type[Type.length - 1] : Type).prototype;
+      instance = new Constructor();
+      // chylvina: if Type returned something, use it, then it is same as invoke.
+      // chylvina: else use instance
+      returnedValue = invoke(Type, instance, locals);
+
+      return isObject(returnedValue) || isFunction(returnedValue) ? returnedValue : instance;
+    }
+
+    return {
+      invoke: invoke,
+      instantiate: instantiate,
+      get: getService,
+      annotate: annotate,
+      has: function(name) {
+        return providerCache.hasOwnProperty(name + providerSuffix) || cache.hasOwnProperty(name);
+      }
+    };
+  }
+}
+
+var res = createInjector();
+var providerInjector = res.providerInjector;
+var instanceInjector = res.instanceInjector;
+
+providerInjector.invoke(['$provide', function($provide) {
+
+  $provide.value('a', 'hello');
+
+  $provide.provider('b', function() {
+    return {
+     $get: function() {
+      var s = {};
+      s.name = 'factory';
+      s.test = function() {
+        console.log(s.name);
+      };
+
+      return s;
+    }}
+  });
+
+  $provide.factory('c', function() {
+    var s = {};
+    s.name = 'factory';
+    s.test = function() {
+      console.log(s.name);
+    };
+
+    return s;
+  });
+
+  $provide.service('d', function() {
+    this.name = 'service';
+    this.test = function() {
+      console.log(this.name);
+    };
+  });
+}]);
+
+console.log(providerInjector.get('aProvider'));
+console.log(providerInjector.get('bProvider'));
+console.log(providerInjector.get('cProvider'));
+console.log(providerInjector.get('dProvider'));
+
+providerInjector.invoke(['aProvider', function(a) {
+  console.log(a);
+  console.log(providerInjector.invoke(a.$get));
+}]);
+providerInjector.invoke(['bProvider', function(b) {
+  console.log(b);
+}]);
+
+
+instanceInjector.invoke(['a', function(a) {
+  console.log(a);
+}]);
+
+instanceInjector.invoke(['$provide', function($provide) {
+
+  $provide.value('a', 'hello');
+
+  $provide.provider('b', function() {
+    return {
+      $get: function() {
+        var s = {};
+        s.name = 'factory';
+        s.test = function() {
+          console.log(s.name);
+        };
+
+        return s;
+      }}
+  });
+
+  $provide.factory('c', function() {
+    var s = {};
+    s.name = 'factory';
+    s.test = function() {
+      console.log(s.name);
+    };
+
+    return s;
+  });
+
+  $provide.service('d', function() {
+    this.name = 'service';
+    this.test = function() {
+      console.log(this.name);
+    };
+  });
+}]);
+
+instanceInjector.invoke(['a', function(a) {
+  console.log(a);
+}]);
+instanceInjector.invoke(['b', function(b) {
+}]);
+
+</script>
+</body>
+
+</html>

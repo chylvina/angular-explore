@@ -296,7 +296,7 @@ function annotate(fn) {
  *
  * An Angular **service** is a singleton object created by a **service factory**.  These **service
  * factories** are functions which, in turn, are created by a **service provider**.
- * The **service providers** are constructor functions. When instantiated they must contain a
+ * The **service providers** are constructor functions. When d they must contain a
  * property called `$get`, which holds the **service factory** function.
  *
  * When you request a service, the {@link auto.$injector $injector} is responsible for finding the
@@ -318,7 +318,7 @@ function annotate(fn) {
  *     that will be wrapped in a **service provider** object, whose `$get` property will contain the
  *     given factory function.
  * * {@link auto.$provide#service service(class)} - registers a **constructor function**, `class`
- *     that will be wrapped in a **service provider** object, whose `$get` property will instantiate
+ *     that will be wrapped in a **service provider** object, whose `$get` property will
  *      a new object using the given constructor function.
  *
  * See the individual methods for more information and examples.
@@ -637,6 +637,7 @@ function createInjector(modulesToLoad) {
     if (isFunction(provider_) || isArray(provider_)) {
       provider_ = providerInjector.instantiate(provider_);
     }
+    // chylvina: $get is required
     if (!provider_.$get) {
       throw $injectorMinErr('pget', "Provider '{0}' must define $get factory method.", name);
     }
