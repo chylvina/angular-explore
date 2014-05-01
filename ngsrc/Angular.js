@@ -1250,7 +1250,6 @@ function bootstrap(element, modules) {
   var doBootstrap = function() {
     element = jqLite(element);
 
-    // chylvina: what's this?
     if (element.injector()) {
       var tag = (element[0] === document) ? 'document' : startingTag(element);
       throw ngMinErr('btstrpd', "App Already Bootstrapped with this Element '{0}'", tag);

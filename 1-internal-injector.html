@@ -119,7 +119,7 @@
   /// invoke
   injector.invoke(function(a) {
     console.log(a);
-  });
+  }, null, {a: 'hihihi'});
   injector.invoke(function(b) {
     console.log(b('test'));
   });
