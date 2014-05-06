@@ -613,7 +613,8 @@ function createInjector(modulesToLoad) {
             return instanceInjector.invoke(provider.$get, provider);
           }));
 
-
+  // 1. loadModule to providerInjector
+  // 2. then instanceInjector invoke runBlocks
   forEach(loadModules(modulesToLoad), function(fn) { instanceInjector.invoke(fn || noop); });
 
   return instanceInjector;
@@ -673,6 +674,8 @@ function createInjector(modulesToLoad) {
   ////////////////////////////////////
   // Module Loading
   ////////////////////////////////////
+
+  // chylvina: load module's staff to providerInjector
   function loadModules(modulesToLoad){
     var runBlocks = [], moduleFn, invokeQueue, i, ii;
     forEach(modulesToLoad, function(module) {

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>AngularJS Plunker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="angular.js"></script>
+</head>
+
+<body ng-controller="MainCtrl">
+<ul>
+  <li ng-repeat="item in arr1 track by $index">
+    <span>{{$id}}</span>
+    <ul>
+      <li ng-repeat="item in arr1 track by $index">
+        <span>{{$id}}</span>
+      </li>
+    </ul>
+  </li>
+</ul>
+</body>
+
+<style>
+  .ng-scope {
+    border: solid 1px #0066cc;
+    margin: 5px;
+  }
+</style>
+
+<script>
+  var app = angular.module('plunker', []);
+
+  app.controller('MainCtrl', function ($scope) {
+    $scope.arr1 = [1, 2, 3, 4, 5, 6, 7, 8];
+    $scope.arr2 = [1, 2, 3, 4, 5, 6, 7, 8];
+  });
+
+</script>
+
+</html>

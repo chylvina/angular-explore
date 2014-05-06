@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>AngularJS Plunker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="angular.js"></script>
+</head>
+
+<body ng-controller="MainCtrl">
+<ul>
+  <li ng-repeat="item in arr1 track by $index">
+    <span>{{$id}}</span>
+    <ul>
+      <li ng-repeat="item in arr1 track by $index">
+        <span>{{$id}}</span>
+      </li>
+    </ul>
+  </li>
+</ul>
+</body>
+
+<style>
+  .ng-scope {
+    border: solid 1px #0066cc;
+    margin: 5px;
+  }
+</style>
+
+<script>
+  angular.module('plunker', [
+    'sub',
+    ['$provide', function ($provide) {
+      $provide.value('$rootElement', element);
+    }]
+  ]);
+
+  angular.module('sub', [])
+    .value()
+    .constant()
+    .provider()
+    .factory()
+    .service()
+    .directive()
+    .filter()
+    .controller();
+
+</script>
+
+</html>
