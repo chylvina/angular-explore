@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>AngularJS Plunker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="angular.js"></script>
+</head>
+
+<body>
+
+<div test="1 + 1;"></div>
+<div test=".1 + 1"></div>
+
+<div test="{a:1, b: 2}"></div>
+<div test="{a:1 + 1, b: 2}"></div>
+
+<div>{{ a.b.c }}</div>
+
+
+</body>
+
+<style>
+  .ng-scope {
+    border: solid 1px #0066cc;
+    margin: 5px;
+  }
+</style>
+
+<script>
+  var app = angular.module('plunker', [])
+    .directive('test', function ($parse) {
+      return function (scope, elem, attrs) {
+        console.log('test ', $parse(attrs['test'])());
+      }
+    });
+
+  var $injector = angular.injector(['ng']);
+
+  // basic
+  $injector.invoke(function ($parse) {
+    console.log($parse('1 + 1')());
+  });
+
+  $injector.invoke(function ($parse) {
+    console.log($parse('{a:1 + 2 * (3 / 4), b:2};', false)());
+  });
+
+  $injector.invoke(function ($parse) {
+    var getter = $parse('user.name');
+    var setter = getter.assign;
+    var context = {user: {name: 'angular'}};
+    var locals = {user: {name: 'local'}};
+    console.log(getter(context, locals));
+    console.log(getter(context));
+    setter(context, 'newValue')
+  });
+
+  // ++ 操作不存在
+  // $injector.invoke(function($parse) {
+  //   console.log($parse('1++', false)());
+  // });
+
+  // 一元操作符
+  $injector.invoke(function ($parse) {
+    console.log($parse('+1')());
+    console.log($parse('-1')());
+    console.log($parse('+ { a: 1 }')());
+    console.log($parse('!false')());
+  });
+
+  $injector.invoke(function ($parse) {
+    console.log($parse('a.b.c.d.e', false)({ a: { b: { c: { d: { e: 'hello' } } } } }));
+  });
+
+
+  $injector.invoke(function ($parse) {
+    console.log($parse(" a = 'c' + 'd' | uppercase ")({ a: 'a' }));
+  });
+
+  // filter 的正确用法
+  $injector.invoke(function ($parse) {
+    //console.log($parse(" 'a' | uppercase | aFilter | bFilter")());
+    // this is not correct
+    // console.log($parse(" { a: 'a' | uppercase } ")());
+    // console.log($parse(" 'a' | uppercase + 'b' | uppercase ")());
+
+
+    console.log($parse(" { a: ('a' | uppercase) } ")());
+
+    console.log($parse(" [ ('a' | uppercase) ] ")());
+  });
+
+  // = 的用法
+  $injector.invoke(function ($parse) {
+    // 错误
+    // console.log($parse(" a = b = 'c' ")({ a: 'a', b: 'b' }));
+  });
+
+  // ?: 的用法
+  $injector.invoke(function ($parse) {
+    // 错误
+    console.log('?:', $parse(" 0 ? 2 : 3 ? 4 : 5 ")());
+  });
+</script>
+
+</html>

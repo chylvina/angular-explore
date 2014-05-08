@@ -100,6 +100,7 @@ var OPERATORS = {
     '||':function(self, locals, a,b){return a(self, locals)||b(self, locals);},
     '&':function(self, locals, a,b){return a(self, locals)&b(self, locals);},
 //    '|':function(self, locals, a,b){return a|b;},
+    // chylvina: this is for filter!
     '|':function(self, locals, a,b){return b(self, locals)(self, locals, a(self, locals));},
     '!':function(self, locals, a){return !a(self, locals);}
 };
@@ -113,6 +114,8 @@ var ESCAPE = {"n":"\n", "f":"\f", "r":"\r", "t":"\t", "v":"\v", "'":"'", '"':'"'
 /**
  * @constructor
  */
+
+// chylvina: 词法分析，将字符串分解为 token
 var Lexer = function (options) {
   this.options = options;
 };
@@ -134,18 +137,25 @@ Lexer.prototype = {
 
     while (this.index < this.text.length) {
       this.ch = this.text.charAt(this.index);
+      // chylvina: ' or ", the start of string
       if (this.is('"\'')) {
         this.readString(this.ch);
-      } else if (this.isNumber(this.ch) || this.is('.') && this.isNumber(this.peek())) {
+      }
+      // chylvina: number, 123 or .123
+      else if (this.isNumber(this.ch) || this.is('.') && this.isNumber(this.peek())) {
         this.readNumber();
-      } else if (this.isIdent(this.ch)) {
+      }
+      // chylvina: id, only accept _ or $ as special char
+      else if (this.isIdent(this.ch)) {
         this.readIdent();
         // identifiers can only be if the preceding char was a { or ,
         if (this.was('{,') && json[0] === '{' &&
             (token = this.tokens[this.tokens.length - 1])) {
           token.json = token.text.indexOf('.') === -1;
         }
-      } else if (this.is('(){}[].,;:?')) {
+      }
+      // chylvina: json style
+      else if (this.is('(){}[].,;:?')) {
         this.tokens.push({
           index: this.index,
           text: this.ch,
@@ -154,12 +164,19 @@ Lexer.prototype = {
         if (this.is('{[')) json.unshift(this.ch);
         if (this.is('}]')) json.shift();
         this.index++;
-      } else if (this.isWhitespace(this.ch)) {
+      }
+      // chylvina: whitespace is ignored
+      else if (this.isWhitespace(this.ch)) {
         this.index++;
         continue;
-      } else {
+      }
+      // chylvina: all the left are supposed to be operators
+      // chylvina: so function is not supported, such as: console.log, alert, Math, ...
+      // chylvina: if, else, while, for are not supported
+      else {
         var ch2 = this.ch + this.peek();
         var ch3 = ch2 + this.peek(2);
+        // chylvina: the operators has 3 chars max
         var fn = OPERATORS[this.ch];
         var fn2 = OPERATORS[ch2];
         var fn3 = OPERATORS[ch3];
@@ -404,6 +421,7 @@ Parser.prototype = {
     //TODO(i): strip all the obsolte json stuff from this file
     this.json = json;
 
+    // chylvina: get the tokens from lexer
     this.tokens = this.lexer.lex(text);
 
     if (json) {
@@ -434,6 +452,7 @@ Parser.prototype = {
   primary: function () {
     var primary;
     if (this.expect('(')) {
+      // one () == one filterChain == 10+ callbacks
       primary = this.filterChain();
       this.consume(')');
     } else if (this.expect('[')) {
@@ -598,6 +617,7 @@ Parser.prototype = {
     return this.assignment();
   },
 
+  // only one = in an exp
   assignment: function() {
     var left = this.ternary();
     var right;
@@ -615,6 +635,7 @@ Parser.prototype = {
     return left;
   },
 
+  // only one ?: in an exp
   ternary: function() {
     var left = this.logicalOR();
     var middle;
@@ -690,13 +711,18 @@ Parser.prototype = {
 
   unary: function() {
     var token;
+    // chylvina: 正数， or nothing
     if (this.expect('+')) {
       return this.primary();
-    } else if ((token = this.expect('-'))) {
+    }
+    // chylvina: 负数, 0 - a
+    else if ((token = this.expect('-'))) {
       return this.binaryFn(Parser.ZERO, token.fn, this.unary());
-    } else if ((token = this.expect('!'))) {
+    }
+    else if ((token = this.expect('!'))) {
       return this.unaryFn(token.fn, this.unary());
-    } else {
+    }
+    else {
       return this.primary();
     }
   },
@@ -765,6 +791,7 @@ Parser.prototype = {
       for (var i = 0; i < argsFn.length; i++) {
         args.push(argsFn[i](scope, locals));
       }
+      // chylvian: function pointer
       var fnPtr = fn(scope, locals, context) || noop;
 
       ensureSafeObject(context, parser.text);
@@ -877,6 +904,7 @@ function setter(obj, path, setValue, fullExp, options) {
     }
   }
   key = ensureSafeMemberName(element.shift(), fullExp);
+  // chylvina: refer to http://jsfiddle.net/yaofan/ch75z/
   obj[key] = setValue;
   return setValue;
 }
