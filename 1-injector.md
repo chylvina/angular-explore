@@ -1,6 +1,11 @@
 ### 关于
-AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架，其通过为开发者呈现一个更高层次的抽象来简化应用的开发。
-相关的介绍，教程，示例以及书籍已经非常之多，但是用过 AngularJS 的工程师们都会有登堂易，入室难的感觉。从我个人学习使用 AngularJS 一年多的经验来看，官方文档太过简单，而很多教程，示例甚至是书籍其实都是照搬官方文档或者稍作修改而已，浪费大量时间不说，对我们的提高帮助非常有限。
+
+### AngularJS
+AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架，其通过为开发者呈现一个更高层次的抽象来简化应用的开发。在这里推荐一篇简短的文章：[专访AngularJS框架创始人Misko Hevery：让Web开发更便捷](http://www.csdn.net/article/2013-10-08/2817118-AngularJS-Framework-Google)。这篇文章对还未接触过 AngularJS 的同学来说是最好的介绍。
+
+虽然相关的介绍，教程，示例以及书籍已经非常之多，但是用过 AngularJS 的工程师们都会有登堂易，入室难的感觉。
+![Image of Yaktocat](http://nathanleclaire.com/images/smooth-angular-tips/js-learning-curves.jpeg)
+从我个人学习使用 AngularJS 一年多的经验来看，官方文档太过简单，而很多教程，示例甚至是书籍其实都是照搬官方文档或者稍作修改而已，浪费大量时间不说，对我们的提高帮助非常有限。
 因此，我选择研究源代码的方式进行学习或者解决问题，受益匪浅。本系列 AngularJS 源代码分析是我对阿里云UED团队内部 AngularJS 培训的文字记录。
 
 ### 代码是最好的文档
