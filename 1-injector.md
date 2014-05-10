@@ -1,18 +1,22 @@
-### 关于
+### 关于本系列文章
 
-### AngularJS
 AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架，其通过为开发者呈现一个更高层次的抽象来简化应用的开发。在这里推荐一篇简短的文章：[专访AngularJS框架创始人Misko Hevery：让Web开发更便捷](http://www.csdn.net/article/2013-10-08/2817118-AngularJS-Framework-Google)。这篇文章对还未接触过 AngularJS 的同学来说是最好的介绍。
 
-虽然相关的介绍，教程，示例以及书籍已经非常之多，但是用过 AngularJS 的工程师们都会有登堂易，入室难的感觉。
-![Image of Yaktocat](http://nathanleclaire.com/images/smooth-angular-tips/js-learning-curves.jpeg)
-从我个人学习使用 AngularJS 一年多的经验来看，官方文档太过简单，而很多教程，示例甚至是书籍其实都是照搬官方文档或者稍作修改而已，浪费大量时间不说，对我们的提高帮助非常有限。
-因此，我选择研究源代码的方式进行学习或者解决问题，受益匪浅。本系列 AngularJS 源代码分析是我对阿里云UED团队内部 AngularJS 培训的文字记录。
+虽然相关的介绍，教程，示例以及书籍已经非常之多，但是用过 AngularJS 的工程师们都会有登堂易，入室难的感觉。下图是 Google 到的 AngularJS 学习曲线。
+![AngularJS Learning Curve](http://nathanleclaire.com/images/smooth-angular-tips/js-learning-curves.jpeg)
 
-### 代码是最好的文档
-* **不一定对。** 好的代码才是最好的文档，何况 AngularJS 的官方文档就是其源代码的代码注释编译后自动生成的，
+从我个人学习使用 AngularJS 一年多的经验来看，官方文档太过简单，而很多教程，示例甚至是书籍其实都是照搬官方文档或者稍作修改而已，浪费大量时间不说，对我们的提高帮助非常有限。因此，我选择研究源代码的方式进行学习或者解决问题，受益匪浅。本系列 AngularJS 源代码分析是我对阿里云UED团队内部 AngularJS 培训的文字记录。
+
+目前angularjs已经在阿里云大面积应用，大到云产品控制台、小到移动端，后续还会应用到官网售卖流程中。希望通过源码解析的系列分享让更多的内部同学能够对 AngularJS 应用自如，同时也希望更多BU的前端同学一起加入到angular的社区，使其成为更好的前端利器。
+
+### 关于源代码学习
+* **代码不一定是最好的文档。** 好的代码才是最好的文档，何况 AngularJS 的官方文档就是其源代码的代码注释编译后自动生成的，
 * 也是最后的文档，在你找不到其他任何解决方案的时候。
-* 同学源代码学习，比看书学习快得多。 AngularJS 的源代码包含代码注释一共2万+行，而目前比较好的学习书 ng-book 在翻译后大约120万字。就算你将 ng-book 看完，也未必能完全理解 AngularJS。我个人认为 ng-book 大部分内容都是照搬官方文档而已，学习意义不大。
-* 通过源代码，不仅可以学习 AngularJS 框架。还可以学习到依赖注入设计模式的实现(injector.js)，词法分析，语法分析的实现(parse.js)，deferred的实现(q.js)等非常多优秀的代码。
+* 源代码学习，比看书学习快得多。 AngularJS 的源代码包含代码注释一共2万+行，而目前比较流行的学习书 ng-book 在翻译后大约120万字。就算你将 ng-book 看完，也未必能完全理解 AngularJS。我个人认为 ng-book 大部分内容都是照搬官方文档而已，学习意义不大。
+* 通过源代码，不仅可以学习 AngularJS 框架。还可以学习到依赖注入设计模式的实现(injector.js)，词法分析，语法分析的实现(parse.js)等非常多优秀的代码。
+* 花更少的时间学习，花更多的时间创造。
 
-### 组件架构图
-### 讲解顺序 $injector $provide $rootScope ...
+### 一句话证明你会 AngularJS
+我首先想到的就是DI，即 Dependency Injection（依赖注入）。[DI是一种设计模式](http://en.wikipedia.org/wiki/Dependency_injection)，
+
+### AngularJS 的组件架构图
