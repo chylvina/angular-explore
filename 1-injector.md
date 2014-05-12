@@ -23,6 +23,8 @@ AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架�
 
 ### AngularJS 的组件架构图
 
+根据 AngularJS DI 的依赖原理，就可以画出 AngularJS 的组件架构图如下：
+
 ## 正式开始 Injector.js
 
 ### 通过学习 Injector.js 将能解决以下问题：
