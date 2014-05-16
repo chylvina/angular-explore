@@ -38,7 +38,7 @@ AngularJS 的组件依赖关系可以用下图示意：
 * decorator 如何使用
 
 ### Injector 的 UML 架构图
-![AngularJS Injector](https://github.com/chylvina/angular-explore/blob/doc/injector.png)
+![AngularJS Injector](https://raw.githubusercontent.com/chylvina/angular-explore/doc/injector.png)
 
 
 ### Injector 的数据结构
