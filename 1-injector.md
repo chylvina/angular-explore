@@ -18,6 +18,32 @@ AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架�
 * 通过源代码，不仅可以学习 AngularJS 框架。还可以学习到依赖注入设计模式的实现(injector.js)，词法分析和语法分析的实现(parse.js)，安全验证和隔离的实现(sce.js)等非常多优秀的代码。
 * 花更少的时间学习，花更多的时间创造。
 
+### AngularJS 代码结构
+* AngularJS 的源代码在：https://github.com/angular/angular.js
+* 其中https://github.com/angular/angular.js/tree/master/src，是代码目录。
+* AngularJS 也是通过 Grunt 进行编译的，在编译 angular.js 时所需的代码是由 https://github.com/angular/angular.js/blob/master/angularFiles.js 中的 angularSrc 这一数组定义的。如下：
+```json
+'angularSrc': [
+    'src/minErr.js',            // AngularJS 错误处理
+    'src/Angular.js',          // 通用方法
+    'src/loader.js',            // 定义 angular.module 方法
+    'src/AngularPublic.js', // 定义 provider
+    'src/jqLite.js',             // jqLite
+    'src/apis.js',               // 定义 hashMap 对象
+
+    'src/auto/injector.js',  // 定义 injector
+
+    'src/ng/anchorScroll.js', // angular 相关 service
+    ...
+
+    'src/ng/filter.js',
+    ...
+
+    'src/ng/directive/directives.js'
+    ...
+  ]
+```
+
 ### 一句话证明你会 AngularJS
 我首先想到的就是DI，即 Dependency Injection（依赖注入）。[DI是一种设计模式](http://en.wikipedia.org/wiki/Dependency_injection)。简而言之，通过 DI 可以将通用的程序代码以依赖的方式注入进来，并形成倒金字塔形的依赖关系。
 
@@ -39,9 +65,21 @@ AngularJS 的组件依赖关系可以用下图示意：
 
 ### Injector 的 UML 架构图
 ![AngularJS Injector](https://raw.githubusercontent.com/chylvina/angular-explore/doc/injector.png)
+#### module 
+就是我们在 angular 项目中最常用的 angular.module 方法：
+```javascript
+angular.module('some-module', ['dependencies'])
+  .constant()
+  .value()
+  .provider()
+  .factory()
+  .service()
+  .directive()
+  .filter()
+  ...
+```
+#### instanceInjector
 
-
-### Injector 的数据结构
 
 在 UML 中用红色高亮了
 
