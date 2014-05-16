@@ -66,7 +66,7 @@ AngularJS 的组件依赖关系可以用下图示意：
 ### Injector 的 UML 架构图
 ![AngularJS Injector](https://raw.githubusercontent.com/chylvina/angular-explore/doc/injector.png)
 #### module 
-就是我们在 angular 项目中最常用的 angular.module 方法：
+就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
 ```javascript
 angular.module('some-module', ['dependencies'])
   .constant()
