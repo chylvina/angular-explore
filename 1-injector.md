@@ -23,7 +23,7 @@ AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架�
 
 AngularJS 的组件依赖关系可以用下图示意：
 ![AngularJS Component Architecture](https://raw.githubusercontent.com/chylvina/angular-explore/doc/component-architecture.png)
-
+本节要介绍的是 $injector 和 $provide。
 
 ## 正式开始 Injector.js
 
@@ -38,6 +38,7 @@ AngularJS 的组件依赖关系可以用下图示意：
 * decorator 如何使用
 
 ### Injector 的 UML 架构图
+![AngularJS Injector](https://github.com/chylvina/angular-explore/blob/doc/injector.png)
 
 
 ### Injector 的数据结构
