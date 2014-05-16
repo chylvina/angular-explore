@@ -22,7 +22,7 @@ AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架�
 * AngularJS 的源代码在：https://github.com/angular/angular.js
 * 其中https://github.com/angular/angular.js/tree/master/src，是代码目录。
 * AngularJS 也是通过 Grunt 进行编译的，在编译 angular.js 时所需的代码是由 https://github.com/angular/angular.js/blob/master/angularFiles.js 中的 angularSrc 这一数组定义的。如下：
-```json
+```javascript
 'angularSrc': [
     'src/minErr.js',            // AngularJS 错误处理
     'src/Angular.js',          // 通用方法
