@@ -47,24 +47,75 @@ AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架�
 ### 一句话证明你会 AngularJS
 我首先想到的就是DI，即 Dependency Injection（依赖注入）。[DI是一种设计模式](http://en.wikipedia.org/wiki/Dependency_injection)。简而言之，通过 DI 可以将通用的程序代码以依赖的方式注入进来，并形成倒金字塔形的依赖关系。
 
-AngularJS 的组件依赖关系可以用下图示意：
+AngularJS 就是建立在 DI 之上的，其组件依赖关系可以用下图示意：
 ![AngularJS Component Architecture](https://raw.githubusercontent.com/chylvina/angular-explore/doc/component-architecture.png)
-本节要介绍的是 $injector 和 $provide。
 
-## 正式开始 Injector.js
+位于最底层的就是实现 DI 的 $injector。源代码位于 https://github.com/angular/angular.js/blob/master/src/auto/injector.js。
 
-### 通过学习 Injector.js 将能解决以下问题：
+## 正式开始 injector.js
+
+### 通过学习 injector.js 将能解决以下问题：
+* Injector 是如何工作的
 * Injector UML 架构图
 * Injector 存储的数据结构
-* Injector 是如何工作的
 * angular.injector(), $injector, $inject 有什么区别
 * $provide, provider, $rootScopeProvider 有什么区别
 * provider, factory, service 有什么区别
 * constant, value 的工作原理
 * decorator 如何使用
 
+### Injector 是如何工作的
+
+对于 AngularJS 中一个有依赖的函数，如下：
+```javascript
+var func = function(a, b) {
+  console.log(a, b);
+}
+```
+函数 func 依赖两个变量(或者叫 service) a 和 b。通过 Injector 实现依赖注入 a 和 b 的步骤如下：
+1. Injector 获取到 func 所需要注入的 service 列表，即 ['a', 'b']
+2. Injector 根据 ['a', 'b']，找到对应的 service 实例，即 a, b
+3. Injector 将 a，b 注入到 func 中，并调用 func，返回运行结果
+
 ### Injector 的 UML 架构图
 ![AngularJS Injector](https://raw.githubusercontent.com/chylvina/angular-explore/doc/injector.png)
+
+#### internal injector
+internal injector 实现了一个基本的 Injector，在上图中可以看到 AngularJS 中所用的两个 injector:
+1. instanceInjector
+2. providerInjector
+都是通过 internal injector 创建的。
+代码结构如下：
+```javascript
+function createInternalInjector(cache, factory) {
+  function getService(serviceName) {
+  }
+
+  function invoke(fn, self, locals, serviceName){
+  }
+
+  function instantiate(Type, locals, serviceName) {
+  }
+
+  return {
+    invoke: invoke,
+    instantiate: instantiate,
+    get: getService,
+    annotate: annotate,
+    has: function(name) {
+      return providerCache.hasOwnProperty(name + providerSuffix) || cache.hasOwnProperty(name);
+    }
+  };
+}
+```
+可见，通过 creatInternalInjector 方法，创建了一个 Object，包含:
+* invoke
+* instantiate
+* get
+* annotate
+* has
+共5个方法。
+
 #### module 
 就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
 ```javascript
@@ -78,7 +129,6 @@ angular.module('some-module', ['dependencies'])
   .filter()
   ...
 ```
-#### internal injector
 
 #### instanceInjector
 instanceInjector用于存储和注入我们用到的所有 service 的实例。例如 $rootScope, $window, $http 等等。这些实例 service 的实例被存在一个叫 cache 的 Object 中。cache 的数据结构如下：
