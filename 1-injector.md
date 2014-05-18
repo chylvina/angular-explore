@@ -78,7 +78,19 @@ angular.module('some-module', ['dependencies'])
   .filter()
   ...
 ```
+#### internal injector
+
 #### instanceInjector
+instanceInjector用于存储和注入我们用到的所有 service 的实例。例如 $rootScope, $window, $http 等等。这些实例 service 的实例被存在一个叫 cache 的 Object 中。cache 的数据结构如下：
+```javascript
+cache: {
+    $rootScope: instance of $rootScope,
+    $window: instance of $window,
+    $http: instance of $http
+    ...
+}
+```
+当
 
 
 在 UML 中用红色高亮了
