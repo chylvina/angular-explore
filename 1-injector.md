@@ -73,6 +73,7 @@ var func = function(a, b) {
 }
 ```
 函数 func 依赖两个变量(或者叫 service) a 和 b。通过 Injector 实现依赖注入 a 和 b 的步骤如下：
+
 1. Injector 获取到 func 所需要注入的 service 列表，即 ['a', 'b']
 2. Injector 根据 ['a', 'b']，找到对应的 service 实例，即 a, b
 3. Injector 将 a，b 注入到 func 中，并调用 func，返回运行结果
