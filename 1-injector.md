@@ -181,26 +181,34 @@ function annotate(fn, strictDi, name) {
   2. 正则表达式提取参数字符串
   3. split 获取每一个参数
   4. 为 fn.$inject 赋值
-2. annotate(['a', 'b', function(a, b) {}])
-  1. 将 fn.$inject 赋值为数组的 0 - (length -1) 项
-3. 如果 fn.$inject 存在，则直接返回
+2. annotate(['a', 'b', fn])，
+3. fn.$inject = ['a', 'b']; annotate(fn)
 
 我们也可以通过代码明白为什么上面第一种方式在 uglify 后无法使用，因为一个函数 fn = function(aParam, bParam) {} 在 uglify 后会变成 fn = function(a, b) {}，这样 annotate 后得到的结果将是 ['a', 'b']，而不是我们期望的 ['aParam', 'bParam']。
 
-而后两种方法则是对 uglify 友好的。
+而后两种方法则是对 uglify 友好的，在 AngularJS 源代码中大都采用第3种方式，不需要解析，速度最快。
 
 ##### get 方法
 ```javascript
+// serviceName 就是我们用到的 $rootScope, $scope, $window 等
 function getService(serviceName) {
+  // 所有的 service 都缓存在 cache 中
   if (cache.hasOwnProperty(serviceName)) {
+    // 如果该 service 正在初始化，则存在循环引用，直接报错。
     if (cache[serviceName] === INSTANTIATING) {
       throw $injectorMinErr('cdep', 'Circular dependency found: {0}', path.join(' <- '));
     }
+    // 否则返回缓存在 cache 中的 service
     return cache[serviceName];
-  } else {
+  } 
+  // 否则，需要创建 serviceName 对应的 service，缓存到 cache 中，再返回该 service
+  else {
     try {
       path.unshift(serviceName);
       cache[serviceName] = INSTANTIATING;
+      // 1. 通过传入的 factory 工厂方法创建 service
+      // 2. 缓存该 service
+      // 3. 返回该 service
       return cache[serviceName] = factory(serviceName);
     } catch (err) {
       if (cache[serviceName] === INSTANTIATING) {
@@ -213,6 +221,42 @@ function getService(serviceName) {
   }
 }
 ````
+
+### invoke 方法
+```javascript
+function invoke(fn, self, locals, serviceName){
+  if (typeof locals === 'string') {
+    serviceName = locals;
+    locals = null;
+  }
+
+  var args = [],
+      $inject = annotate(fn, strictDi, serviceName),
+      length, i,
+      key;
+
+  for(i = 0, length = $inject.length; i < length; i++) {
+    key = $inject[i];
+    if (typeof key !== 'string') {
+      throw $injectorMinErr('itkn',
+              'Incorrect injection token! Expected service name as string, got {0}', key);
+    }
+    args.push(
+      locals && locals.hasOwnProperty(key)
+      ? locals[key]
+      : getService(key)
+    );
+  }
+  if (!fn.$inject) {
+    // this means that we must be an array.
+    fn = fn[length];
+  }
+
+  // http://jsperf.com/angularjs-invoke-apply-vs-switch
+  // #5388
+  return fn.apply(self, args);
+}
+```
 
 #### module 
 就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
