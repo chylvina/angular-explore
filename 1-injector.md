@@ -77,6 +77,10 @@ var func = function(a, b) {
 2. Injector 根据 ['a', 'b']，找到对应的 service 实例，即 a, b
 3. Injector 将 a，b 注入到 func 中，并调用 func，返回运行结果
 
+1. One
+2. Two
+3. Three
+
 ### Injector 的 UML 架构图
 ![AngularJS Injector](https://raw.githubusercontent.com/chylvina/angular-explore/doc/injector.png)
 
