@@ -110,12 +110,109 @@ function createInternalInjector(cache, factory) {
 }
 ```
 可见，通过 creatInternalInjector 方法，创建了一个 Object，包含:
+
+* 私有变量 cache
 * invoke
 * instantiate
 * get
 * annotate
 * has
-共5个方法。
+
+共1个属性，5个方法。其中最重要的是:
+
+1. annotate 实现了获取到 func 所需要注入的 service 列表
+2. get 实现了根据所需要注入的 service 列表，找到对应的 service 实例
+3. invoke 实现了注入，并返回调用结果
+
+##### annotate 方法
+```javascript
+// fn 即为需要标记的函数
+function annotate(fn, strictDi, name) {
+  var $inject,
+      fnText,
+      argDecl,
+      last;
+
+  // 如果 fn 是函数类型，即 fn = function(a, b) {} 
+  if (typeof fn == 'function') {
+    // 如果 fn.$inject 不存在
+    if (!($inject = fn.$inject)) {
+      $inject = [];
+      if (fn.length) {
+        if (strictDi) {
+          if (!isString(name) || !name) {
+            name = fn.name || anonFn(fn);
+          }
+          throw $injectorMinErr('strictdi',
+            '{0} is not using explicit annotation and cannot be invoked in strict mode', name);
+        }
+        // 通过 function.toString() 方法获取 fn 对应的字符串，并去掉字符串中的注释部分
+        fnText = fn.toString().replace(STRIP_COMMENTS, '');
+        // 获取 fn 中的参数部分，即 'a, b'
+        argDecl = fnText.match(FN_ARGS);
+        // 获取具体的每一个参数，放到数组 $inject 中
+        forEach(argDecl[1].split(FN_ARG_SPLIT), function(arg){
+          arg.replace(FN_ARG, function(all, underscore, name){
+            $inject.push(name);
+          });
+        });
+      }
+      // 为 fn.$inject 赋值
+      fn.$inject = $inject;
+    }
+  } 
+  // 如果 fn 是数组，即 fn = ['a', 'b', function(a, b) {}]
+  else if (isArray(fn)) {
+    // 那么将认为数组中的最后一项为需要注入的函数，前面所有项为需要注入的 service 列表，即 $inject
+    last = fn.length - 1;
+    assertArgFn(fn[last], 'fn');
+    $inject = fn.slice(0, last);
+  } else {
+    // 报错
+    assertArgFn(fn, 'fn', true);
+  }
+  return $inject;
+}
+```
+综上，我们知道 annotate 一个函数 fn = function(a, b) {} 有三种方法：
+
+1. annotate(fn)，则将通过
+  1. fn.toString() 获取 fn 字符串
+  2. 正则表达式提取参数字符串
+  3. split 获取每一个参数
+  4. 为 fn.$inject 赋值
+2. annotate(['a', 'b', function(a, b) {}])
+  1. 将 fn.$inject 赋值为数组的 0 - (length -1) 项
+3. 如果 fn.$inject 存在，则直接返回
+
+我们也可以通过代码明白为什么上面第一种方式在 uglify 后无法使用，因为一个函数 fn = function(aParam, bParam) {} 在 uglify 后会变成 fn = function(a, b) {}，这样 annotate 后得到的结果将是 ['a', 'b']，而不是我们期望的 ['aParam', 'bParam']。
+
+而后两种方法则是对 uglify 友好的。
+
+##### get 方法
+```javascript
+function getService(serviceName) {
+  if (cache.hasOwnProperty(serviceName)) {
+    if (cache[serviceName] === INSTANTIATING) {
+      throw $injectorMinErr('cdep', 'Circular dependency found: {0}', path.join(' <- '));
+    }
+    return cache[serviceName];
+  } else {
+    try {
+      path.unshift(serviceName);
+      cache[serviceName] = INSTANTIATING;
+      return cache[serviceName] = factory(serviceName);
+    } catch (err) {
+      if (cache[serviceName] === INSTANTIATING) {
+        delete cache[serviceName];
+      }
+      throw err;
+    } finally {
+      path.shift();
+    }
+  }
+}
+````
 
 #### module 
 就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
