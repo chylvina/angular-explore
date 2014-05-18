@@ -11526,6 +11526,9 @@ function $RootScopeProvider(){
           ChildScope.prototype = this;
           child = new ChildScope();
           child.$id = nextUid();
+
+          // chylvina: log scope hash
+          window.scopeHash[child.$id] = child;
         }
         child['this'] = child;
         child.$$listeners = {};
@@ -11911,6 +11914,7 @@ function $RootScopeProvider(){
 
           traverseScopesLoop:
           do { // "traverse the scopes" loop
+            console.log(current.$id);
             if ((watchers = current.$$watchers)) {
               // process our watches
               length = watchers.length;
@@ -12362,8 +12366,7 @@ function $RootScopeProvider(){
           // yes, this code is a bit crazy, but it works and we have tests to prove it!
           // this piece should be kept in sync with the traversal in $digest
           // (though it differs due to having the extra check for $$listenerCount)
-          if (!(next = ((current.$$listenerCount[name] && current.$$childHead) ||
-              (current !== target && current.$$nextSibling)))) {
+          if (!(next = ((current.$$listenerCount[name] && current.$$childHead) || (current !== target && current.$$nextSibling)))) {
             while(current !== target && !(next = current.$$nextSibling)) {
               current = current.$parent;
             }

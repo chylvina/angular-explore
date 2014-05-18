@@ -201,6 +201,7 @@ function $RootScopeProvider(){
         } else {
           this.$$childHead = this.$$childTail = child;
         }
+
         return child;
       },
 
@@ -418,6 +419,7 @@ function $RootScopeProvider(){
         var internalObject = {};
         var oldLength = 0;
 
+        // chylvina: check length, check first level value
         function $watchCollectionWatch() {
           newValue = objGetter(self);
           var newLength, key;
@@ -442,6 +444,7 @@ function $RootScopeProvider(){
               changeDetected++;
               oldValue.length = oldLength = newLength;
             }
+            // chylvina: only check level 1
             // copy the items to oldValue and look for changes.
             for (var i = 0; i < newLength; i++) {
               if (oldValue[i] !== newValue[i]) {
@@ -614,6 +617,7 @@ function $RootScopeProvider(){
               }
             }
 
+            // chylvina: 本节点以下的深度优先遍历，与 $broadcast 一致。
             // Insanity Warning: scope depth-first traversal
             // yes, this code is a bit crazy, but it works and we have tests to prove it!
             // this piece should be kept in sync with the traversal in $broadcast
@@ -880,6 +884,7 @@ function $RootScopeProvider(){
         }
         namedListeners.push(listener);
 
+        // chylvina: simulate propagation
         var current = this;
         do {
           if (!current.$$listenerCount[name]) {
@@ -889,6 +894,7 @@ function $RootScopeProvider(){
         } while ((current = current.$parent));
 
         var self = this;
+        // chylvina: how to $off a listener
         return function() {
           namedListeners[indexOf(namedListeners, listener)] = null;
           decrementListenerCount(self, 1, name);

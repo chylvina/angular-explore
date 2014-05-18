@@ -104,7 +104,7 @@
 
   /// annotate
   // inference
-  console.log(injector.annotate(function(a, b) {} ));
+  console.log(injector.annotate(function(a, b) {} )); // ['a', 'b']
   // inline
   console.log(injector.annotate(['a', 'b', function(a, b) {}]));
   // $inject
@@ -120,6 +120,8 @@
   injector.invoke(function(a) {
     console.log(a);
   }, null, {a: 'hihihi'});
+
+
   injector.invoke(function(b) {
     console.log(b('test'));
   });

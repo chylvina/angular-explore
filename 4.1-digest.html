@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>AngularJS Plunker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="angular.js"></script>
+</head>
+
+<body ng-controller="MainCtrl">
+<ul>
+  <li ng-repeat="item in arr track by $index">
+    <span>{{$id}}</span>
+    <ul>
+      <li ng-repeat="item in arr track by $index">
+        <span>{{$id}}</span>
+        <ul>
+          <li ng-repeat="item in arr track by $index">
+            <span ng-click="test($id)">{{$id}}</span>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+</body>
+
+<style>
+  .ng-scope {
+    border: solid 1px #0066cc;
+    margin: 5px;
+  }
+</style>
+
+<script>
+  var app = angular.module('plunker', []);
+
+  var scopeHash = {};
+
+  app.controller('MainCtrl', function ($scope) {
+    $scope.arr = [1, 2, 3];
+
+    $scope.test = function($id) {
+      var scope = scopeHash[$id];
+      scope.$digest();
+    };
+
+    setTimeout(function() {
+      console.log('start');
+      var scope = scopeHash['007'];
+      scope.$digest();
+    }, 3000);
+  });
+
+</script>
+
+</html>

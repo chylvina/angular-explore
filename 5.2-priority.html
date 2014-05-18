@@ -21,9 +21,9 @@
 
 <script>
   var app = angular.module('plunker', [])
-    .directive('test', function ($parse) {
-      return function (scope, elem, attrs) {
-        console.log('test ', $parse(attrs['test'])());
+    .filter('test', function() {
+      return function(input) {
+        console.log('filter:', input);
       }
     });
 
@@ -31,7 +31,7 @@
 
   // basic
   $injector.invoke(function ($parse) {
-    console.log($parse('a')());
+    $parse(" alert('a') || alert('b'); ")({ 'alert': function(input) { console.log(input); return input; } });
   });
 </script>
 
