@@ -224,23 +224,27 @@ function getService(serviceName) {
 
 ##### invoke 方法
 ```javascript
-function invoke(fn, self, locals, serviceName){
-  if (typeof locals === 'string') {
-    serviceName = locals;
-    locals = null;
-  }
-
+// fn 是被调用的函数，如 fn = function(a, b) {}
+// self 是 fn 调用的上下文
+// locals 是在进行依赖注入时获取依赖 service 的另一种优先级更高的方式
+function invoke(fn, self, locals){
   var args = [],
-      $inject = annotate(fn, strictDi, serviceName),
+      // 通过 annotate 方法获取到 fn 的依赖列表
+      $inject = annotate(fn),
       length, i,
       key;
 
+  // 遍历依赖列表
   for(i = 0, length = $inject.length; i < length; i++) {
     key = $inject[i];
+    // 依赖列表中的每一项必须是字符串
     if (typeof key !== 'string') {
       throw $injectorMinErr('itkn',
               'Incorrect injection token! Expected service name as string, got {0}', key);
     }
+    // 如果 locals 中存在所需要的依赖的实例，则优先从 locals 中获取该实例
+    // 否则调用 getService 方法从 $injector 中获取该实例
+    // 最后将所有获得的实例放在 args 数组中
     args.push(
       locals && locals.hasOwnProperty(key)
       ? locals[key]
@@ -252,11 +256,41 @@ function invoke(fn, self, locals, serviceName){
     fn = fn[length];
   }
 
-  // http://jsperf.com/angularjs-invoke-apply-vs-switch
-  // #5388
+  // 最后一步，以self为上下文调用 fn，将 args 作为参数传入
+  // 返回调用的结果
   return fn.apply(self, args);
 }
 ```
+
+##### instantiate 方法
+该方法是另外一种形式的 invokde。由于 invoke 方法只能实现对函数的依赖注入，而对于下面这种构建函数则无法使用：
+```javascript
+var Car = function(engineVendor, tireVendor) {
+  this.engine = engineVendor.make();
+  this.tire = tireVendor.make();
+};
+
+Car.prototype.run = function() {
+}
+```
+使用 instantiate 方法可解决该问题。
+```javascript
+// Type 相当于上面的 Car
+// locals 是在进行依赖注入时获取依赖 service 的另一种优先级更高的方式
+function instantiate(Type, locals) {
+  var Constructor = function() {},
+      instance, returnedValue;
+
+  Constructor.prototype = (isArray(Type) ? Type[Type.length - 1] : Type).prototype;
+  // 通过 new 创建了一个空的 Object
+  instance = new Constructor();
+  // 以 instance 为上下文，invoke Type
+  returnedValue = invoke(Type, instance, locals);
+
+  return isObject(returnedValue) || isFunction(returnedValue) ? returnedValue : instance;
+}
+```
+后面会介绍到，在 AngularJS 中，通过 angular.module().service() 定义的 service 是使用 instantiate 进行初始化的。
 
 #### module 
 就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
