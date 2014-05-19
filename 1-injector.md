@@ -222,7 +222,7 @@ function getService(serviceName) {
 }
 ````
 
-### invoke 方法
+##### invoke 方法
 ```javascript
 function invoke(fn, self, locals, serviceName){
   if (typeof locals === 'string') {
