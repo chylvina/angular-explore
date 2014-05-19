@@ -327,7 +327,7 @@ instanceInjector = (instanceCache.$injector =
     return instanceInjector.invoke(provider.$get, provider);
   }));
 ```
-注意，在上面的代码只能怪， instanceInjector 通过 createInternalInjector 创建后立即存储在了 instanceCache 中，成为了 instanceInjector 的 cache 中的第一个 service 实例。在 Injector 的 UML 架构图 也标记出来了。也就是说：
+注意，在上面的代码中， instanceInjector 通过 createInternalInjector 创建后立即存储在了 instanceCache 中，成为了 instanceInjector 的 cache 中的第一个 service 实例。在 Injector 的 UML 架构图 也标记出来了。也就是说：
 ```javascript
 instanceInjector.invoke(function($injector) {
   expect(instanceInjector).toBe($injector);
@@ -352,6 +352,24 @@ cache: {
 3. 将 $rootScope 缓存在 instanceInjector 的 cache 中
 
 instanceInjector 只有读操作，用来获取 service 的实例。写入 serviceProvider 是在 providerInjector 的 $provide 提供的。
+
+创建 providerInjector 的代码如下：
+```javascript
+providerCache = {
+$provide: {
+    provider: supportObject(provider),
+    factory: supportObject(factory),
+    service: supportObject(service),
+    value: supportObject(value),
+    constant: supportObject(constant),
+    decorator: decorator
+  }
+},
+providerInjector = (providerCache.$injector =
+  createInternalInjector(providerCache, function() {
+    throw $injectorMinErr('unpr', "Unknown provider: {0}", path.join(' <- '));
+  })),
+```
 
 
 #### module 
