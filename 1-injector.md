@@ -292,6 +292,68 @@ function instantiate(Type, locals) {
 ```
 后面会介绍到，在 AngularJS 中，通过 angular.module().service() 定义的 service 是使用 instantiate 进行初始化的。
 
+#### instanceInjector
+instanceInjector用于存储和注入我们用到的所有 service 的实例。例如 $rootScope, $window, $http 等等。
+这些实例 service 的实例被存在一个叫 cache 的 Object 中。cache 的数据结构如下：
+```javascript
+cache: {
+    $rootScope: instance of $rootScope,
+    $window: instance of $window,
+    $http: instance of $http
+    ...
+}
+```
+在项目中如果有如下代码：
+```javascript
+angular.module('aModule', [])
+  .controller('aController', function($injector, $scope) {
+    $injector.get('$rootScope');
+  });
+```
+那么 $injector 指的就是 instanceInjector。
+另外，angular.injector() 方法执行后返回的也是 instanceInjector。
+
+创建 instanceInjector 的代码如下：
+```javascript
+var providerSuffix = 'Provider',
+instanceCache = {},
+// 1. 通过 createInternalInjector 创建
+// 2. 传入一个初始为 {} 的 instanceCache 实例作为 cache
+// 3. 传入一个工厂方法，该方法的作用是在 instanceInjector 的 cache 中找不到所需要注入的 service 实例时，通过
+//    providerInjector 获取。关于 providerInjector 在后面介绍。
+instanceInjector = (instanceCache.$injector =
+  createInternalInjector(instanceCache, function(servicename) {
+    var provider = providerInjector.get(servicename + providerSuffix);
+    return instanceInjector.invoke(provider.$get, provider);
+  }));
+```
+注意，在上面的代码只能怪， instanceInjector 通过 createInternalInjector 创建后立即存储在了 instanceCache 中，成为了 instanceInjector 的 cache 中的第一个 service 实例。在 Injector 的 UML 架构图 也标记出来了。也就是说：
+```javascript
+instanceInjector.invoke(function($injector) {
+  expect(instanceInjector).toBe($injector);
+});
+```
+会有一点绕，建议从存储的角度来推理。实际上涉及到的存储结构非常简单，只有一个 cache，所有的存储都用红色高亮了。
+
+#### providerInjector
+对于一个 service 实例来说，创建该实例的类叫做 serviceProvider。对于上面 instanceInjector 的 cache 示意来说，对应的 providerInjector 的 cache 的示意如下：
+```javascript
+cache: {
+    $rootScopeProvider: defination of $rootScopeProvider,
+    $windowProvider: defination of $windowProvider,
+    $httpProvider: defination of $httpProvider
+    ...
+}
+```
+当我们需要注入一个 $rootScope 时:
+
+1. 会先在 instanceInjector 的 cache 中查找，如果存在直接返回
+2. 否则在 providerInjector 中查找 $rootScopeProvider，通过 $rootScopeProvider 创建 $rootScope
+3. 将 $rootScope 缓存在 instanceInjector 的 cache 中
+
+instanceInjector 只有读操作，用来获取 service 的实例。写入 serviceProvider 是在 providerInjector 的 $provide 提供的。
+
+
 #### module 
 就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
 ```javascript
@@ -305,20 +367,5 @@ angular.module('some-module', ['dependencies'])
   .filter()
   ...
 ```
-
-#### instanceInjector
-instanceInjector用于存储和注入我们用到的所有 service 的实例。例如 $rootScope, $window, $http 等等。这些实例 service 的实例被存在一个叫 cache 的 Object 中。cache 的数据结构如下：
-```javascript
-cache: {
-    $rootScope: instance of $rootScope,
-    $window: instance of $window,
-    $http: instance of $http
-    ...
-}
-```
-当
-
-
-在 UML 中用红色高亮了
 
 ### Injector 是如何工作的
