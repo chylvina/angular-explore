@@ -544,7 +544,7 @@ injector.js 算注释一共829行，不算注释也就300行左右的代码，�
 - $parse如何工作
 - 词法分析 (javascript的词法分析，ng的词法分析)
 - 语法分析 (javascript的语法分析，ng的语法分析(运算表达式))
-- ng-some=‘expression’; 65ng-some=‘{ a: expression, b: expression }’65<div>{{expression}}</div>65的区别
+- ng-some=‘expression’; ng-some=‘{ a: expression, b: expression }’<div>{{expression}}</div>65的区别
 - 表达式支持哪些关键字，不支持哪些操作
 - 如何在表达式中使用 filter
 - getter，setter 为 scope 提供支撑
