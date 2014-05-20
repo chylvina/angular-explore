@@ -87,6 +87,7 @@ internal injector 实现了一个基本的 Injector，在上图中可以看到 A
 
 1. instanceInjector
 2. providerInjector
+
 都是通过 internal injector 创建的。
 代码结构如下：
 ```javascript
