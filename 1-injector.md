@@ -84,6 +84,7 @@ var func = function(a, b) {
 
 #### internal injector
 internal injector 实现了一个基本的 Injector，在上图中可以看到 AngularJS 中所用的两个 injector:
+
 1. instanceInjector
 2. providerInjector
 都是通过 internal injector 创建的。
