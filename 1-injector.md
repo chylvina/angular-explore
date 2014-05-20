@@ -448,14 +448,99 @@ function decorator(serviceName, decorFn) {
 就是我们在 angular 项目中最常用的 angular.module 方法，在 https://github.com/angular/angular.js/blob/master/src/loader.js 中定义：
 ```javascript
 angular.module('some-module', ['dependencies'])
+  .config()
   .constant()
   .value()
   .provider()
-  .factory()
+  .factory('aFactor', function() {})
   .service()
   .directive()
   .filter()
+  .run()
   ...
 ```
+这些方法与 providerInjector 中的 $provide service 提供的方法有很多类似，实际上，module 中的 constant, value, provider 等方法最终就是调用 $provide 中对应的方法进行初始化的。
 
-### Injector 是如何工作的
+例如，我们通过最常用的 factory 定义了 aFactory，则 AngularJS 会通过 $provide 在 providerInjector 的 cache 写入一个叫做 aFactoryProvider 的 provider。当我们在其他地方需要注入 aFactory 时：
+```javascript
+angular.module('another-module', ['some-module'])
+  // 1. instanceInjector 将会 invoke 下面的函数
+  // 2. instanceInjector 尝试获取 aFactory
+  // 3. instanceInjector 尝试通过 providerInjector 获取 aFactoryProvider
+  // 4. aFactory = instanceInjector.invoke(aFactoryProvider.$get)
+  // 5. instanceInjector.cache['aFactory'] = aFactory
+  .controller('aController', function(aFactory) {
+    // do something with aFactory
+  })
+```
+module 的定义在 https://github.com/angular/angular.js/blob/master/src/loader.js 中。
+module 的初始化在 https://github.com/angular/angular.js/blob/master/src/auto/injector.js 中。
+代码如下：
+```javascript
+// loadModules 是一个可以嵌套(递归)调用的函数
+// modulesToLoad 是需要加载的 module 数组，如 ['ng']
+function loadModules(modulesToLoad){
+  var runBlocks = [], moduleFn, invokeQueue;
+  forEach(modulesToLoad, function(module) {
+    // 如果 module 已经被初始化，直接返回
+    if (loadedModules.get(module)) return;
+    loadedModules.put(module, true);
+
+    // 根据 module 在 https://github.com/angular/angular.js/blob/master/src/loader.js 中的定义进行初始化
+    // 例如 angular.module().factory() 将会调用 $provide.factory 方法
+    function runInvokeQueue(queue) {
+      var i, ii;
+      for(i = 0, ii = queue.length; i < ii; i++) {
+        var invokeArgs = queue[i],
+            provider = providerInjector.get(invokeArgs[0]);
+
+        provider[invokeArgs[1]].apply(provider, invokeArgs[2]);
+      }
+    }
+
+    try {
+      if (isString(module)) {
+        moduleFn = angularModule(module);
+        runBlocks = runBlocks.concat(loadModules(moduleFn.requires)).concat(moduleFn._runBlocks);
+        runInvokeQueue(moduleFn._invokeQueue);
+        runInvokeQueue(moduleFn._configBlocks);
+      } else if (isFunction(module)) {
+          runBlocks.push(providerInjector.invoke(module));
+      } else if (isArray(module)) {
+          runBlocks.push(providerInjector.invoke(module));
+      } else {
+        assertArgFn(module, 'module');
+      }
+    } catch (e) {
+      if (isArray(module)) {
+        module = module[module.length - 1];
+      }
+      if (e.message && e.stack && e.stack.indexOf(e.message) == -1) {
+        // Safari & FF's stack traces don't contain error.message content
+        // unlike those of Chrome and IE
+        // So if stack doesn't contain message, we create a new string that contains both.
+        // Since error.stack is read-only in Safari, I'm overriding e and not e.stack here.
+        /* jshint -W022 */
+        e = e.message + '\n' + e.stack;
+      }
+      // 这个报错也经常出现
+      throw $injectorMinErr('modulerr', "Failed to instantiate module {0} due to:\n{1}",
+                module, e.stack || e.message || e);
+    }
+  });
+  return runBlocks;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
