@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>AngularJS Plunker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="angular.js"></script>
+</head>
+
+<body>
+
+<div ng-click="console.log(this);">click</div>
+
+</body>
+
+<style>
+  .ng-scope {
+    border: solid 1px #0066cc;
+    margin: 5px;
+  }
+</style>
+
+<script>
+  var app = angular.module('plunker', [])
+    .run(function($rootScope) {
+      $rootScope.console = {};
+      $rootScope.console.log = $rootScope.log = function(s) {
+        window.console.log.apply(window.console, arguments);
+        // window.console.log(s);
+      };
+    });
+</script>
+
+</html>
