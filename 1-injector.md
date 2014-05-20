@@ -63,6 +63,7 @@ AngularJS 就是建立在 DI 之上的，其组件依赖关系可以用下图示
 * provider, factory, service 有什么区别
 * constant, value 的工作原理
 * decorator 如何使用
+* config 和 run 的区别
 
 ### Injector 是如何工作的
 
@@ -390,7 +391,6 @@ function provider(name, provider_) {
   // 我们不能定义一个叫 service 的 serviceProvider
   assertNotHasOwnProperty(name, 'service');
   // 如果 providerInjector 是函数或者数组(不是 Object)，那么首先将使用 **providerInjector** 进行注入，
-  // 这是唯一使用 providerInjector 进行注入的地方
   if (isFunction(provider_) || isArray(provider_)) {
     provider_ = providerInjector.instantiate(provider_);
   }
@@ -498,11 +498,17 @@ function loadModules(modulesToLoad){
       }
     }
 
+    // 下面的代码可以看出，将 module 中定义的 run 的部分放进了 runBlocks 数组，然后返回。
+    // 也就是说，runBlocks 部分是在所有 module 初始化完毕后再调用的。
+    // 这样做才能保证 run 中所依赖的 service 所对应的 provider 已经全部加载就绪了。
+    // 而 config 则是在 module 初始化过程中通过 providerInjector 注入的。
+    // 综上，run 中可以注入 service instance，而 config 中只能注入 provider。这就是两者的区别。
     try {
       if (isString(module)) {
         moduleFn = angularModule(module);
         runBlocks = runBlocks.concat(loadModules(moduleFn.requires)).concat(moduleFn._runBlocks);
         runInvokeQueue(moduleFn._invokeQueue);
+        // 使用 providerInjector 注入 config 
         runInvokeQueue(moduleFn._configBlocks);
       } else if (isFunction(module)) {
           runBlocks.push(providerInjector.invoke(module));
@@ -532,15 +538,13 @@ function loadModules(modulesToLoad){
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
+## 小结
+injector.js 算注释一共829行，不算注释也就300行左右的代码，但是它定义了 DI，初始化 module，成为 AngularJS 的基础。非常值得学习和借鉴。下一节将介绍 parse.js，将解决如下问题：
+- Angular 表达式介绍
+- $parse如何工作
+- 词法分析 (javascript的词法分析，ng的词法分析)
+- 语法分析 (javascript的语法分析，ng的语法分析(运算表达式))
+- ng-some=‘expression’; 65ng-some=‘{ a: expression, b: expression }’65<div>{{expression}}</div>65的区别
+- 表达式支持哪些关键字，不支持哪些操作
+- 如何在表达式中使用 filter
+- getter，setter 为 scope 提供支撑
