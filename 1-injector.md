@@ -355,6 +355,14 @@ instanceInjector 只有读操作，用来获取 service 的实例。写入 servi
 
 创建 providerInjector 的代码如下：
 ```javascript
+// providerInjector 的 cache 除了存储下面的 providerInjector 实例外，还存了一个叫做 $provide 的 service
+// $provide 提供的这些方法我们非常熟悉，里面我们最常用的
+// factory, value, constant 方法
+// 还有 AngularJS 内部最常用的 provider 方法
+// 这些方法的作用都是向 providerInjector 的 cache 写入 provider，例如 $rootScopeProvider
+// 当 instanceInjector 尝试第一次获取 $rootScope 时，将首先从 providerInjector 中获取 $rootScopeProvider，
+// 通过 $rootScopeProvider 创建 $rootScope 实例，然后缓存并返回。
+// 因此，所有 service 的实例都只会创建一次，然后被缓存。
 providerCache = {
 $provide: {
     provider: supportObject(provider),
@@ -365,11 +373,13 @@ $provide: {
     decorator: decorator
   }
 },
+// providerInjector 的工厂方法是直接报错，这个错误我们非常熟悉，那就是 'Unknow provider'
 providerInjector = (providerCache.$injector =
   createInternalInjector(providerCache, function() {
     throw $injectorMinErr('unpr', "Unknown provider: {0}", path.join(' <- '));
   })),
 ```
+
 
 
 #### module 
