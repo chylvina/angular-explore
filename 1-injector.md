@@ -365,6 +365,7 @@ instanceInjector 只有读操作，用来获取 service 的实例。写入 servi
 // 因此，所有 service 的实例都只会创建一次，然后被缓存。
 providerCache = {
 $provide: {
+    // support 方法的作用是允许传入使用对象定义的 provider
     provider: supportObject(provider),
     factory: supportObject(factory),
     service: supportObject(service),
@@ -379,7 +380,68 @@ providerInjector = (providerCache.$injector =
     throw $injectorMinErr('unpr', "Unknown provider: {0}", path.join(' <- '));
   })),
 ```
+$provide 的方法按照从底层向上层排列如下：
+```javascript
+// 最底层的方法，在 AngularJS 内部都是通过该方法定义 serviceProvider
+// 其他的方法最终都会调用该方法
+// name 是所要定义的 serviceProvider 的名称，例如如果要定义 $rootScope 的 provide，那么 name = '$rootScope'
+// provider_ 是对应的工厂方法
+function provider(name, provider_) {
+  // 我们不能定义一个叫 service 的 serviceProvider
+  assertNotHasOwnProperty(name, 'service');
+  // 如果 providerInjector 是函数或者数组(不是 Object)，那么首先将使用 **providerInjector** 进行注入，
+  // 这是唯一使用 providerInjector 进行注入的地方
+  if (isFunction(provider_) || isArray(provider_)) {
+    provider_ = providerInjector.instantiate(provider_);
+  }
+  // $get 属性是必须的
+  // 对于 $rootScopeProvider 来说，在创建 $rootScope 的时候，将使用 instanceInjector.invoke(provider_.$get) 来创建  
+  // $rootScope
+  if (!provider_.$get) {
+    throw $injectorMinErr('pget', "Provider '{0}' must define $get factory method.", name);
+  }
+  // providerSuffix = 'Provider'
+  // 因此，一个 service 如 $rootScope 对应的 provider 是 $rootScopeProvider
+  // AngularJS 到处是这种没有约定的常量用法，因此只有看源代码才能理解。
+  return providerCache[name + providerSuffix] = provider_;
+}
 
+// 这个方法应该是我们最常用的定义 service 的方法，其实就是将我们自己写的工厂方法放在了 $get 属性中
+function factory(name, factoryFn) { return provider(name, { $get: factoryFn }); }
+
+// 通过阅读下面的源代码我们可以很清楚的看出 factory 和 service 的区别
+function service(name, constructor) {
+  return factory(name, ['$injector', function($injector) {
+    return $injector.instantiate(constructor);
+  }]);
+}
+
+// value 方法通过闭包的方式，将 val 作为私有变量引入
+function value(name, val) { return factory(name, valueFn(val)); }
+
+// constant 方法直接将 value 写在 cache 上
+function constant(name, value) {
+  assertNotHasOwnProperty(name, 'constant');
+  providerCache[name] = value;
+  instanceCache[name] = value;
+}
+
+// decorator 允许我们可以包装 serviceProvider
+function decorator(serviceName, decorFn) {
+  // 需要包装的 serviceProvider
+  var origProvider = providerInjector.get(serviceName + providerSuffix),
+      // 保存原有的 $get 工厂方法
+      orig$get = origProvider.$get;
+
+  // 创建新的工厂方法
+  origProvider.$get = function() {
+    // 先调用原有的工厂方法
+    var origInstance = instanceInjector.invoke(orig$get, origProvider);
+    // 再调用包装方法进行覆盖
+    return instanceInjector.invoke(decorFn, null, {$delegate: origInstance});
+  };
+}
+```
 
 
 #### module 
