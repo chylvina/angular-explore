@@ -9,7 +9,7 @@ AngularJS 是 Google 推出的开源 JavaScript MV*（MVW、MVVM、MVC）框架�
 
 目前angularjs已经在阿里云大面积应用，大到云产品控制台、小到移动端，后续还会应用到官网售卖流程中。希望通过源码解析的系列分享让更多的内部同学能够对 AngularJS 应用自如，同时也希望更多BU的前端同学一起加入到angular的社区，使其成为更好的前端利器。
 
-本系列文章所使用的源代码地址：https://github.com/chylvina/angular-explore。master分支，tag中有每一节的标记。
+本系列文章所使用的源代码地址：https://github.com/chylvina/angular-explore 。master分支，tag中有每一节的标记。
 
 ### 关于源代码学习
 * **代码不一定是最好的文档。** 好的代码才是最好的文档，何况 AngularJS 的官方文档就是其源代码的代码注释编译后自动生成的，
