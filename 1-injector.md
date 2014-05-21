@@ -541,7 +541,8 @@ function loadModules(modulesToLoad){
 ```
 
 ## 小结
-injector.js 算注释一共829行，不算注释也就300行左右的代码，但是它定义了 DI，初始化 module，成为 AngularJS 的基础。非常值得学习和借鉴。下一节将介绍 parse.js，将解决如下问题：
+injector.js 算注释一共829行，不算注释也就300行左右的代码，但是它定义了 DI，初始化 module，成为 AngularJS 的基础。非常值得学习和借鉴。
+下一节将介绍 parse.js，将解决如下问题：
 - Angular 表达式介绍
 - $parse如何工作
 - 词法分析 (javascript的词法分析，ng的词法分析)
