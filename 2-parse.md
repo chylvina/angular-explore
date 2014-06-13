@@ -66,7 +66,9 @@ AngularJS 通过表达式实现了数据绑定，另外它还是 $rootScope 和 
 总结这系列文章，一个语法解析器有以下几部分组成：
 
 #### 词法分析
-词法分析(Lexical analysis)，从左向右扫描表达式，找到所有有意义的词并放在一个关键字数组中。如上面的表达式中，关键字数组为：if, (, true, ), print, “Hello World!”, ;。做法其实很简单，预先定义好关键字，在扫描时遇到匹配的关键字，就放在关键字数组中，否则继续扫描；
+词法分析(Lexical analysis)，从左向右扫描表达式，找到所有有意义的词并放在一个关键字数组中。如上面的表达式中，关键字数组为：if, (, true, ), print, “Hello World!”, ;。做法其实很简单，预先定义好关键字，在扫描时遇到匹配的关键字，就放在关键字数组中，否则继续扫描。
+
+在一个编程语言设计时，就要求这些关键字为保留字，因此编译器可以通过有限状态机进行高效的解析。这一点与自然语言有很大不同，在自然语言中，没有所谓的关键字或者保留字，我想怎么说就怎么说，说错了对方也可能理解。
 
 #### 语法分析
 语法分析(Syntactic analysis)，有最基本的关键字数组了，下面要将词组成有意义的语句，做法与第一步类似，从左向右扫描关键字数组(注意这里不是扫描字符了)，遇到预先定义好的关键字，就递归进去扫描。例如上面的数组，遇到 if 后，递归进入 if 表达式的扫描：
@@ -109,6 +111,138 @@ switch(type) {
 - 没有编译，因此不会生成二进制文件。但是针对于某个表达式已经生成的回调函数会缓存在内存，下次直接调用。
 
 ### $parse 的词法分析
+下面就通过源代码来看看 $parse 的词法分析：
+```javascript
+lex: function (text) {
+  // text 为被解析的语句
+  this.text = text;
+  this.index = 0;
+  this.ch = undefined;
+  // tokens 为解析后的关键词数组
+  this.tokens = [];
+
+  // 遍历
+  while (this.index < this.text.length) {
+    // 读取当前字符
+    this.ch = this.text.charAt(this.index);
+    // 如果当前字符是单引号或者双引号
+    if (this.is('"\'')) {
+      // 进入读取字符串的子循环，直到字符串结束
+      this.readString(this.ch);
+    }
+    // 如果当前字符是数字，或者如果当前字符是小数点，下一个字符是数字
+    else if (this.isNumber(this.ch) || this.is('.') && this.isNumber(this.peek())) {
+      // 进入读取数字的子循环
+      this.readNumber();
+    }
+    // 如果当前字符是 ID
+    else if (this.isIdent(this.ch)) {
+      // 进入读取 ID 的子循环
+      this.readIdent();
+    }
+    // 如果当前字符是下列符号
+    else if (this.is('(){}[].,;:?')) {
+      // 这些符号将作为单独的关键词
+      this.tokens.push({
+        index: this.index,
+        text: this.ch
+      });
+      this.index++;
+    }
+    // 如果当前字符是空格，则忽略
+    else if (this.isWhitespace(this.ch)) {
+      this.index++;
+    }
+    // 否则，将其视为操作符。
+    else {
+      var ch2 = this.ch + this.peek();
+      var ch3 = ch2 + this.peek(2);
+      var fn = OPERATORS[this.ch];
+      var fn2 = OPERATORS[ch2];
+      var fn3 = OPERATORS[ch3];
+      if (fn3) {
+        this.tokens.push({index: this.index, text: ch3, fn: fn3});
+        this.index += 3;
+      } else if (fn2) {
+        this.tokens.push({index: this.index, text: ch2, fn: fn2});
+        this.index += 2;
+      } else if (fn) {
+        this.tokens.push({
+          index: this.index,
+          text: this.ch,
+          fn: fn
+        });
+        this.index += 1;
+      } else {
+        this.throwError('Unexpected next character ', this.index, this.index + 1);
+      }
+    }
+  }
+  return this.tokens;
+}
+```
+从上面的代码中可以看出，$parse 可以识别：
+- 字符串
+- 数字
+- ID (可以看做是无序的字符排列)
+- (){}[].,;:?
+- 操作符
+和 javascript 不同的是，$parse 不识别关键字，如 var, if, else, while 等。
+
+```javascript
+var OPERATORS = {
+    /* jshint bitwise : false */
+    'null':function(){return null;},
+    'true':function(){return true;},
+    'false':function(){return false;},
+    undefined:noop,
+    '+':function(self, locals, a,b){
+      a=a(self, locals); b=b(self, locals);
+      if (isDefined(a)) {
+        if (isDefined(b)) {
+          return a + b;
+        }
+        return a;
+      }
+      return isDefined(b)?b:undefined;},
+    '-':function(self, locals, a,b){
+          a=a(self, locals); b=b(self, locals);
+          return (isDefined(a)?a:0)-(isDefined(b)?b:0);
+        },
+    '*':function(self, locals, a,b){return a(self, locals)*b(self, locals);},
+    '/':function(self, locals, a,b){return a(self, locals)/b(self, locals);},
+    '%':function(self, locals, a,b){return a(self, locals)%b(self, locals);},
+    '^':function(self, locals, a,b){return a(self, locals)^b(self, locals);},
+    '=':noop,
+    '===':function(self, locals, a, b){return a(self, locals)===b(self, locals);},
+    '!==':function(self, locals, a, b){return a(self, locals)!==b(self, locals);},
+    '==':function(self, locals, a,b){return a(self, locals)==b(self, locals);},
+    '!=':function(self, locals, a,b){return a(self, locals)!=b(self, locals);},
+    '<':function(self, locals, a,b){return a(self, locals)<b(self, locals);},
+    '>':function(self, locals, a,b){return a(self, locals)>b(self, locals);},
+    '<=':function(self, locals, a,b){return a(self, locals)<=b(self, locals);},
+    '>=':function(self, locals, a,b){return a(self, locals)>=b(self, locals);},
+    '&&':function(self, locals, a,b){return a(self, locals)&&b(self, locals);},
+    '||':function(self, locals, a,b){return a(self, locals)||b(self, locals);},
+    '&':function(self, locals, a,b){return a(self, locals)&b(self, locals);},
+//    '|':function(self, locals, a,b){return a|b;},
+    '|':function(self, locals, a,b){return b(self, locals)(self, locals, a(self, locals));},
+    '!':function(self, locals, a){return !a(self, locals);}
+}
+```
+上面这段代码中列出了 $parse 能够识别的操作符：
+- ++ -- 这样的操作符不在其中，因此 $parse 不支持这样的操作。
+- 注意倒数第三行，本来在 javascript 中作为位运算符的 | 在这里被注释掉了，在后面的语法分析中作为过滤器操作进行解析。
+
+### $parse 的语法分析
+
+
+
+
+
+
+
+
 
 
 
