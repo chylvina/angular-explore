@@ -235,7 +235,28 @@ var OPERATORS = {
 - 注意倒数第三行，本来在 javascript 中作为位运算符的 | 在这里被注释掉了，在后面的语法分析中作为过滤器操作进行解析。
 
 ### $parse 的语法分析
+$parse 的语法分析是通过下面的方法实现的：
+```javascript
+parse: function (text) {
+  // text 是需要解析的语句
+  this.text = text;
+  // tokens 是词法解析出来的关键词数组
+  this.tokens = this.lexer.lex(text);
 
+  // 语法解析, value 即为解析后的回调函数。
+  var value = this.statements();
+
+  if (this.tokens.length !== 0) {
+    this.throwError('is an unexpected token', this.tokens[0]);
+  }
+
+  value.literal = !!value.literal;
+  value.constant = !!value.constant;
+
+  return value;
+},
+```
+在 statements 方法中，
 
 
 
