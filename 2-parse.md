@@ -256,7 +256,22 @@ parse: function (text) {
   return value;
 },
 ```
-在 statements 方法中，
+在 statements 方法中，Parse 使用递归的方法按照运算符的优先级对表达式进行处理。例如对下面这个表达式，
+```javascript
+a + b * c
+```
+将生成下面的回调函数：
+```javascript
+function exp1 (scope) {
+  return scope.b * scope.c;
+}
+
+function exp2 (scope) {
+  return scope.a + exp1(scope);
+}
+```
+将所有的运算符优先级整理出来，如下图所示：
+![Parse](https://raw.githubusercontent.com/chylvina/angular-explore/doc/parse.png)
 
 
 
