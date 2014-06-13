@@ -296,6 +296,29 @@ method( ('param' | filter) )
 ```
 但是这样使用将导致表达式递归嵌套太多，性能下降。
 
+### 表达式的形式
+表达式出现在 AngularJS 的各个角落。
+
+1. ng-some=‘expression’; 
+2. ng-some=‘{ a: expression, b: expression }’
+3. <div>{{expression}}</div>
+
+我还见到过有人这样写:
+```javascript
+ng-some='a + {{ expression }}'
+```
+
+这些都是表达式，那么他们有什么区别呢。单个花括号和双花括号有什么区别呢。
+
+通过看上面运算符的图，我们可以看到，表达式是支持单花括号的，也就是 json 风格的数据。所以
+ng-some=‘expression’;
+ng-some=‘{ a: expression, b: expression }’
+没有本质上的区别，就是两个表达式而已。
+
+第三个不同，它实际上会被看做是一个 $interpolate。在 interpolate.js 中，我们可以看到，双花括号其实只是一个标记符号，标记其中包含的是一个表达式，我们可以自定义标记符号，如使用 '//' 而不是 '{{' 作为标记符号。
+
+最后一个就是不对的，属于画蛇添足。它相当于把一个表达式分成了两个表达式而已。
+
 ### 关于 getter 和 setter
 上面说了表达式的上下文是 scope，那么解析后的回调函数中必须能够读取 scope 中的变量。也就是 getter 和 setter 方法。
 
