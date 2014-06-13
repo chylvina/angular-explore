@@ -272,14 +272,161 @@ function exp2 (scope) {
 ```
 将所有的运算符优先级整理出来，如下图所示：
 ![Parse](https://raw.githubusercontent.com/chylvina/angular-explore/doc/parse.png)
+从上图中可以看出：
 
+1. 过滤器(filter)的优先级最低，
+2. 圆括号，方括号，花括号和点号的优先级最高。
+3. 最重要的，只有在圆括号内才能使用过滤器，看最下面的 (filterChain)，在其他的括号里面都是 exp，表示不能有 filterChain。
 
+因此，下面的表达式是错误的：
+```javascript
+{ 'data': 'hello' | upperCase }
 
+obj[a | divide]
 
+method( 'param' | filter )
+```
+如果想要在这些地方使用过滤器，必须用圆括号括起来，如下：
+```javascript
+{ 'data': ('hello' | upperCase) }
 
+obj[(a | divide)]
 
+method( ('param' | filter) )
+```
+但是这样使用将导致表达式递归嵌套太多，性能下降。
 
+### 关于 getter 和 setter
+上面说了表达式的上下文是 scope，那么解析后的回调函数中必须能够读取 scope 中的变量。也就是 getter 和 setter 方法。
 
+#### getter 方法
+源代码如下：
+```javascript
+function getterFn(path, options, fullExp) {
+  // Check whether the cache has this getter already.
+  // We can use hasOwnProperty directly on the cache because we ensure,
+  // see below, that the cache never stores a path called 'hasOwnProperty'
+  if (getterFnCache.hasOwnProperty(path)) {
+    return getterFnCache[path];
+  }
+
+  var pathKeys = path.split('.'),
+      pathKeysLength = pathKeys.length,
+      fn;
+
+  // When we have only 1 or 2 tokens, use optimized special case closures.
+  // http://jsperf.com/angularjs-parse-getter/6
+  if (pathKeysLength === 1) {
+    fn = simpleGetterFn1(pathKeys[0], fullExp);
+  } else if (pathKeysLength === 2) {
+    fn = simpleGetterFn2(pathKeys[0], pathKeys[1], fullExp);
+  } else if (options.csp) {
+    if (pathKeysLength < 6) {
+      fn = cspSafeGetterFn(pathKeys[0], pathKeys[1], pathKeys[2], pathKeys[3], pathKeys[4], fullExp);
+    } else {
+      fn = function(scope, locals) {
+        var i = 0, val;
+        do {
+          val = cspSafeGetterFn(pathKeys[i++], pathKeys[i++], pathKeys[i++], pathKeys[i++],
+                                pathKeys[i++], fullExp)(scope, locals);
+
+          locals = undefined; // clear after first iteration
+          scope = val;
+        } while (i < pathKeysLength);
+        return val;
+      };
+    }
+  } else {
+    var code = 'var p;\n';
+    forEach(pathKeys, function(key, index) {
+      ensureSafeMemberName(key, fullExp);
+      code += 'if(s == null) return undefined;\n' +
+              's='+ (index
+                      // we simply dereference 's' on any .dot notation
+                      ? 's'
+                      // but if we are first then we check locals first, and if so read it first
+                      : '((k&&k.hasOwnProperty("' + key + '"))?k:s)') + '["' + key + '"]' + ';\n';
+    });
+    code += 'return s;';
+
+    /* jshint -W054 */
+    var evaledFnGetter = new Function('s', 'k', code); // s=scope, k=locals
+    /* jshint +W054 */
+    evaledFnGetter.toString = valueFn(code);
+    fn = evaledFnGetter;
+  }
+
+  // Only cache the value if it's not going to mess up the cache object
+  // This is more performant that using Object.prototype.hasOwnProperty.call
+  if (path !== 'hasOwnProperty') {
+    getterFnCache[path] = fn;
+  }
+  return fn;
+}
+```
+其中大部分代码是用来优化性能的(如根据路径的长度做不同的操作)和保证安全的。主要的工作做就是这段代码：
+```javascript
+function simpleGetterFn1(key0, fullExp) {
+  ensureSafeMemberName(key0, fullExp);
+
+  return function simpleGetterFn1(scope, locals) {
+    if (scope == null) return undefined;
+    return ((locals && locals.hasOwnProperty(key0)) ? locals : scope)[key0];
+  };
+}
+```
+这段代码就是具体的取值操作：
+1. 从上下文(也就是scope)中取值
+2. 容许空值
+
+#### setter 方法
+
+源代码如下：
+```javascript
+function setter(obj, path, setValue, fullExp) {
+  // element 为路径分解数组，如对于路径 a.b.c 来说，就是 [a, b, c]
+  var element = path.split('.'), key;
+  // 注意， 如果 element 的长度等于 1，则不进入次循环。
+  for (var i = 0; element.length > 1; i++) {
+    // 安全验证，不用去管。
+    key = ensureSafeMemberName(element.shift(), fullExp);
+    var propertyObj = obj[key];
+    // 注意，如果该值不存在，则要创建。
+    if (!propertyObj) {
+      propertyObj = {};
+      obj[key] = propertyObj;
+    }
+    obj = propertyObj;
+  }
+  key = ensureSafeMemberName(element.shift(), fullExp);
+  // 对于 element 长度等于 1 的情况，直接赋值。
+  obj[key] = setValue;
+  return setValue;
+}
+```
+很简单的代码，但是在实际使用中给开发者带来了很多困扰。举例说明：
+
+对于 scopeA 有一个子节点 scopeB，scopeA 有一个属性 name = 'ued'。
+
+那么，scopeB.name 的 getter 方法得到的值是 'ued'，这没问题。但是 scopeB.name = 'aliyun'，结果会怎么样呢？scopeA.name 的值会变吗？
+
+答案是不会，看 setter 的代码。由于 element 的长度等于 1，所以跳过循环，直接到最后一步赋值，scopeB.name = ‘aliyun’，对 scopeA 没有影响。
+
+同理根据代码你可以分析出 scopeA.user.name = 'ued'，那么 scopeB.user.name = 'aliyun' 会出现什么结果。
+
+答案是 scopeA.user.name = 'aliyun'。
+
+这种问题不通过源代码解析是很难得到真正的理解的。
+
+## 小结
+parse.js 算注释一共1000+行，其中包含了词法分析和语法分析等复杂的逻辑。但其实很多操作都是性能优化和安全验证。通过抽丝剥茧得到的部分其实非常简单和实用，如 getter 和 setter。
+
+下一节将介绍 rootScope.js，将解决如下问题：
+- 为什么要用 scope
+- scope.$new 分析，Angular在什么时候创建了scope，isolate scope的不同
+- scope.$watch, scope.$watchCollection, scope.$digest 分析，工作原理，Angular 的性能瓶颈以及优化策略
+- scope.$apply, scope.$eval, scope.$evalAsync 区别，使用场景
+- scope.$on, scope.$emit, scope.$broadcast, scope.$destroy 分析
 
 
 
