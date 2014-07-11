@@ -65,7 +65,27 @@ $('#input').text = '数据保存成功。'
 
 一切看起来是无比的和谐，但是在实际的项目开发中就没那么理想了，我们举个例子，实现一个 web app 的登陆功能：
 
+![login](https://raw.githubusercontent.com/chylvina/angular-explore/doc/login.png)
 
+DOM 是一个简单的登陆框，两个输入，一个按钮。但是 Handler 就很多了，在图中用红色文字标出的就是需要处理的来自 DOM 和 服务器的事件。一个事件代表一个 Handler。光数目就很多了。
+
+但是这才刚刚开始，我们实现其中一个 Handler 来举例，对于 "Sign in" 这个按钮，其 click Handler 如下：
+
+```javascript
+$('#signin').on('click', function(event) {
+  // 判断用户名不为空且有效
+  valid($('#username'));
+  
+  // 判断密码不为空且有效
+  valid($('#password'));
+})
+```
+
+从上面的例子可以看出一个重要的信息，在 "sign in" 这个 DOM 的 Handler 中需要对其他两个 DOM 进行处理。事实上这并不是偶然的，经过总结归纳我们可以得出结论：
+
+在任意一个 Handler 中需要对所有的 DOM 进行处理。
+
+如下图所示：
 
 
 
