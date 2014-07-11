@@ -116,14 +116,26 @@ AngularJS 通过增加 scope 层，彻底解决了 Hanlder 和 DOM 的耦合问�
 
 所有的 Handler 都只和 scope 层打交道，而且只需要关心与自己有关的数据即可。问题复杂度不再随着项目规模的扩大而爆发。
 
-### scope 的架构图
+### scope.$new
 
 scope 的架构图如下：
 
 ![scope](https://raw.githubusercontent.com/chylvina/angular-explore/doc/scope.png)
 
+在图中可以看出 rootScope, scope, isolateScope 的区别。代码实现在 rootScope.js 中 $new 的函数定义中。
 
+需要注意的是，scope 使用了链表的数据结构，而不是数组。这样做的目的是提高性能。
 
+另外，使用 scope 树而不是单独的 rootScope 也有性能优化的考虑。这样做的好处是，如果只是局部的更新，只需要检查局部的 scope 即可，不会对整个 scope 树进行检查。
+
+第三，想要知道 AngularJS 在什么时候会自动创建一个新的 scope，需要搜索整个 angular.js 代码，找到在哪里调用了 $new 方法。下面列举出来：
+
+- compile 的时候
+- transclude 指令
+- ngIf 指令
+- ngInclude 指令
+- ngRepeat 指令
+- ngSwitch 指令
 
 
 
