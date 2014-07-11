@@ -21,4 +21,71 @@
 AngularJS 是 web app 的开发框架之一。那么什么是 web app 呢。我个人理解，web app 的出现是为了解决用户与服务器之间难以沟通而出现的一个间接的中间层。如果人人都是计算机高手，能够通过命令行工具使用 TCP/UDP 协议与服务器进程进行愉快而友好的沟通，那前端工程师只能换工作了。
 
 作为一个间接的中间层，web app 的工作原理如下图所示：
+
 ![web app](https://raw.githubusercontent.com/chylvina/angular-explore/doc/web%20app.png)
+
+很简单明了，web app 的作用就是：
+
+1. 接受用户输入
+2. 将用户输入通过后台接口传给后台
+3. 获取后台数据返回
+4. 渲染数据并呈现给用户
+
+注意，这种模式仅适用于 web app 而不一定适用于 web game，由于 web game 的用户输入非常频繁，为了保证显示帧数的稳定性，web game 可以采用主动定时刷新的方式进行数据呈现，也就是“心跳机制”：
+
+![web app](https://raw.githubusercontent.com/chylvina/angular-explore/doc/web%20game.png)
+
+对于 web app 中的第 1 步，其代码实现就是响应 DOM 事件，例如：
+
+```javascript
+$('#button').on('click', function(event) {
+  // do something
+});
+
+$('#input').on('input', function(event) {
+  // do something
+});
+```
+
+对于 web app 中的第 2，3 步，其代码实现就是通过 ajax 请求服务器并等待回调：
+
+```javascript
+server.api(function() {
+  // do something
+});
+```
+
+对于 web app 中的第 4 步，其代码实现就是更新 DOM：
+
+```javascript
+$('#input').text = '数据保存成功。'
+```
+
+综上，在前 3 步我们做的事情就是处理来自于用户或者服务器的异步调用，我称之为 Handler。在第 4 步我们做的是渲染 DOM。
+
+一切看起来是无比的和谐，但是在实际的项目开发中就没那么理想了，我们举个例子，实现一个 web app 的登陆功能：
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
