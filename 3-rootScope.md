@@ -88,9 +88,11 @@ $('#signin').on('click', function(event) {
 这就像在任意一个函数中，需要对其参数的所有可能情况进行判断一样。虽然你可以说我并没有判断或者全面判断，项目照样可以工作，但是这并不能说明你是对的，只能说明你是幸运的。
 
 如下图所示：
+![handler explode](https://raw.githubusercontent.com/chylvina/angular-explore/doc/handler%20explode.png)
 
+圆形表示 Handler，方形表示 DOM，每一个 Handler 都需要和所有的 DOM 打交道。反过来每个 DOM 也是如此。如果产品需求更新，导致新增了一个 Hanlder 或者 DOM，那么新的 Hanlder 或者 DOM 仍然需要与已经存在的 DOM 或者 Handler 打交道。
 
-
+想象一下，一个简单的项目里面就可以有几十上百个 DOM 或者 Handler，这样错综复杂的网状结构怎能不“为伊消得人憔悴”。前端开发不好干啊。
 
 
 
