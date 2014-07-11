@@ -98,8 +98,6 @@ $('#signin').on('click', function(event) {
 
 ##### MVC
 
-世上本没有路，走的人多了就变成了路。
-
 Handler 可以分为两类，一类是处理 DOM 的，可以看做 View，一类是处理服务器通信的，可以看做 Model。可见世上本没有一个叫 Controller 的东西， Controller 是为了解决 View 和 Model 的耦合而加上的一个“间接的中间层”。如下如所示：
 
 
