@@ -21,3 +21,4 @@
 AngularJS 是 web app 的开发框架之一。那么什么是 web app 呢。我个人理解，web app 的出现是为了解决用户与服务器之间难以沟通而出现的一个间接的中间层。如果人人都是计算机高手，能够通过命令行工具使用 TCP/UDP 协议与服务器进程进行愉快而友好的沟通，那前端工程师只能换工作了。
 
 作为一个间接的中间层，web app 的工作原理如下图所示：
+![web app](https://raw.githubusercontent.com/chylvina/angular-explore/doc/web%20app.png)
