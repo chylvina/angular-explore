@@ -112,7 +112,15 @@ MVC 一定程度上解决了耦合的问题，但我们在开发过程中仍然�
 
 AngularJS 通过增加 scope 层，彻底解决了 Hanlder 和 DOM 的耦合问题。如下图所示：
 
+![MVVM](https://raw.githubusercontent.com/chylvina/angular-explore/doc/mvvm.png)
 
+所有的 Handler 都只和 scope 层打交道，而且只需要关心与自己有关的数据即可。问题复杂度不再随着项目规模的扩大而爆发。
+
+### scope 的架构图
+
+scope 的架构图如下：
+
+![scope](https://raw.githubusercontent.com/chylvina/angular-explore/doc/scope.png)
 
 
 
