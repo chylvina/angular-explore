@@ -100,9 +100,17 @@ $('#signin').on('click', function(event) {
 
 Handler 可以分为两类，一类是处理 DOM 的，可以看做 View，一类是处理服务器通信的，可以看做 Model。可见世上本没有一个叫 Controller 的东西， Controller 是为了解决 View 和 Model 的耦合而加上的一个“间接的中间层”。如下如所示：
 
+![MVC](https://raw.githubusercontent.com/chylvina/angular-explore/doc/model_view_controller.jpg)
 
+这样，Model 层的 Handler 通过 Controller 层隔离，不需要与 DOM 打交道了。再通过 MVC 的嵌套，某个子 MVC 结构中的 View 层只需要和该子结构中的 DOM 打交道即可。达到了解耦的目的。
 
+MVC 一定程度上解决了耦合的问题，但我们在开发过程中仍然赶到不够给力，因为即使是我们上面提到的只有 3 个 DOM 的登陆 case，里面也涉及到十几个 Handler。而且我们还需要处理 MVC 的嵌套，这仍然是令人头疼。
 
+#### MVVM
+
+关于 AngularJS 设计模式的争论见这里(https://plus.google.com/+AngularJS/posts/aZNVhj355G2)
+
+AngularJS 通过增加 scope 层，彻底解决了 Hanlder 和 DOM 的耦合问题。如下图所示：
 
 
 
