@@ -141,7 +141,7 @@ scope 的架构图如下：
 
 ### scope.$watch
 
-
+scope.$watch 是实现 AngularJS 的 MVVM 设计模式的核心或者叫引擎。
 
 
 
