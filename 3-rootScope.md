@@ -126,16 +126,20 @@ scope 的架构图如下：
 
 需要注意的是，scope 使用了链表的数据结构，而不是数组。这样做的目的是提高性能。
 
-另外，使用 scope 树而不是单独的 rootScope 也有性能优化的考虑。这样做的好处是，如果只是局部的更新，只需要检查局部的 scope 即可，不会对整个 scope 树进行检查。
+另外，使用 scope 树而不是单独的 rootScope 也有性能优化的考虑。这样做的好处是，如果只是局部的更新，只需要检查局部的 scope 即可，不会对整个 scope 树进行检查(这个过程不是 AngularJS 自动完成的，通常 AngularJS 只会自动更新全部的 scope)。
 
 第三，想要知道 AngularJS 在什么时候会自动创建一个新的 scope，需要搜索整个 angular.js 代码，找到在哪里调用了 $new 方法。下面列举出来：
 
-- compile 的时候
+- 自定义一个新的指令，并指定 scope
 - transclude 指令
 - ngIf 指令
 - ngInclude 指令
 - ngRepeat 指令
 - ngSwitch 指令
+
+可见，一个新的 scope 是在需要动态创建或者销毁 DOM 的情况下创建的，这样可以随着 DOM 的创建或者销毁相应的创建或者销毁对应的 scope。
+
+### scope.$watch
 
 
 
