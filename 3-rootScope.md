@@ -143,10 +143,10 @@ scope 的架构图如下：
 
 scope.$digest 是实现 AngularJS 的 MVVM 设计模式的核心或者叫引擎。如下图所示：
 
-1. 用户的输入在触发后将对某个 scope 中的数据进行相应的修改，然后 AngularJS 将自动调用 scope.$digest 开始进行数据检查
-2. 原先的 handler 在这里变成了 watcher。watcher 是通过 scope.$watch 注册的。AngularJS 将按照深度优先对该 scope 下的所有 watcher 进行遍历
+1. 用户的输入在触发后将对某个 scope 中的数据进行相应的修改，然后 AngularJS 将自动调用 scope.$digest 开始进行数据检查，在某些时候我们也可以主动调用 scope.$digest
+2. 原先的 handler 在这里变成了 watcher。watcher 是通过 scope.$watch 注册的。AngularJS 将按照深度优先对该 scope 下的所有 scope 进行遍历，在每个 scope 中将对其所有 watcher 进行遍历
 3. 在 $rootScope.$digest 的过程中会对每个 watcher 进行检查，如果发现 watcher 中表达式的计算结果与上次计算结果不同，则会认为是数据更新，将调用该 watcher 的回调函数
-4. 在调用完该 watcher 的回调函数后，$digest 会在从该 watcher 重新将所有 watcher 遍历一次，即回到步骤 2，直到某一次完全遍历过程中没有发现任何一个 watcher 的数据有更新为止
+4. 在调用完该 watcher 的回调函数后，$digest 会在从该 watcher 重新将所有 scope, watcher 遍历一次，即回到步骤 2，直到某一次完全遍历过程中没有发现任何一个 watcher 的数据有更新为止
 
 scope.$watch 的代码如下：
 
@@ -201,6 +201,122 @@ $watch: function(watchExp, listener, objectEquality) {
 	  arrayRemove(array, watcher);
 	  lastDirtyWatch = null;
 	};
+}
+```
+
+scope.$digest 代码如下：
+```javascript
+$digest: function() {
+  var watch, value, last,
+    watchers,
+    // 这是 scope.evalAsync 方法所用的变量，scope.evalAsync 在下面的章节有介绍
+    asyncQueue = this.$$asyncQueue,
+    // 这是 scope.postDigenst 方法所用的变量
+    postDigestQueue = this.$$postDigestQueue,
+    length,
+    dirty, ttl = TTL,
+    next, current, target = this,
+    watchLog = [],
+    logIdx, logMsg, asyncTask;
+
+  // 使用一个全局变量标记当前状态，说明同一时间只能有一个 $digest 方法在执行
+  beginPhase('$digest');
+
+  lastDirtyWatch = null;
+
+  // 第一重循环，在所有 scope 中循环
+  do { // "while dirty" loop
+    dirty = false;
+    current = target;
+
+    // scope.evalAsync 在下面的章节有介绍
+    while(asyncQueue.length) {
+      try {
+        asyncTask = asyncQueue.shift();
+        asyncTask.scope.$eval(asyncTask.expression);
+      } catch (e) {
+        clearPhase();
+        $exceptionHandler(e);
+      }
+      lastDirtyWatch = null;
+    }
+
+    traverseScopesLoop:
+      do { // "traverse the scopes" loop
+        if ((watchers = current.$$watchers)) {
+          // process our watches
+          length = watchers.length;
+          while (length--) {
+            try {
+              watch = watchers[length];
+              // Most common watches are on primitives, in which case we can short
+              // circuit it with === operator, only when === fails do we use .equals
+              if (watch) {
+                if ((value = watch.get(current)) !== (last = watch.last) &&
+                  !(watch.eq
+                    ? equals(value, last)
+                    : (typeof value == 'number' && typeof last == 'number'
+                    && isNaN(value) && isNaN(last)))) {
+                  dirty = true;
+                  lastDirtyWatch = watch;
+                  watch.last = watch.eq ? copy(value) : value;
+                  watch.fn(value, ((last === initWatchVal) ? value : last), current);
+                  if (ttl < 5) {
+                    logIdx = 4 - ttl;
+                    if (!watchLog[logIdx]) watchLog[logIdx] = [];
+                    logMsg = (isFunction(watch.exp))
+                      ? 'fn: ' + (watch.exp.name || watch.exp.toString())
+                      : watch.exp;
+                    logMsg += '; newVal: ' + toJson(value) + '; oldVal: ' + toJson(last);
+                    watchLog[logIdx].push(logMsg);
+                  }
+                } else if (watch === lastDirtyWatch) {
+                  // If the most recently dirty watcher is now clean, short circuit since the remaining watchers
+                  // have already been tested.
+                  dirty = false;
+                  break traverseScopesLoop;
+                }
+              }
+            } catch (e) {
+              clearPhase();
+              $exceptionHandler(e);
+            }
+          }
+        }
+
+        // chylvina: 本节点以下的深度优先遍历，与 $broadcast 一致。
+        // Insanity Warning: scope depth-first traversal
+        // yes, this code is a bit crazy, but it works and we have tests to prove it!
+        // this piece should be kept in sync with the traversal in $broadcast
+        if (!(next = (current.$$childHead ||
+          (current !== target && current.$$nextSibling)))) {
+          while(current !== target && !(next = current.$$nextSibling)) {
+            current = current.$parent;
+          }
+        }
+      } while ((current = next));
+
+    // `break traverseScopesLoop;` takes us to here
+
+    if((dirty || asyncQueue.length) && !(ttl--)) {
+      clearPhase();
+      throw $rootScopeMinErr('infdig',
+          '{0} $digest() iterations reached. Aborting!\n' +
+          'Watchers fired in the last 5 iterations: {1}',
+        TTL, toJson(watchLog));
+    }
+
+  } while (dirty || asyncQueue.length);
+
+  clearPhase();
+
+  while(postDigestQueue.length) {
+    try {
+      postDigestQueue.shift()();
+    } catch (e) {
+      $exceptionHandler(e);
+    }
+  }
 }
 ```
 
