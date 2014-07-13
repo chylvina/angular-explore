@@ -334,10 +334,62 @@ $digest: function() {
 3. 减少整体循环的次数
 4. 某些集中复杂的操作可以不使用 watcher 而是直接进行源生的 DOM 操作
 5. 合理的使用 scope.$apply, scope.$eval, scope.$evalAsync, scope.postDigest
+6. 在 ngRepeat 中使用的是 $watchCollection 方法，了解 ngRepeat 和 $watchCollection 的原理对性能优化大有帮助
 
 ### scope.$apply, scope.$eval, scope.$evalAsync, scope.postDigest
 
 这些方法与 $digest 有关，深刻理解他们对项目性能的优化有很大帮助。
+
+#### scope.$eval
+源代码如下:
+```javascript
+$eval: function(expr, locals) {
+  return $parse(expr)(this, locals);
+}
+```
+scope.$eval 方法不会触发 scope.$digest，只是计算表达式的值。
+
+#### scope.$apply
+源代码如下
+```javascript
+$apply: function(expr) {
+  try {
+    beginPhase('$apply');
+    return this.$eval(expr);
+  } catch (e) {
+    $exceptionHandler(e);
+  } finally {
+    clearPhase();
+    try {
+      $rootScope.$digest();
+    } catch (e) {
+      $exceptionHandler(e);
+      throw e;
+    }
+  }
+}
+````
+很简单，先使用 scope.$eval 对表达式进行计算，然后调用 $rootScope.$digest 对所有 scope, watcher 进行数据检查。注意是所有，因此使用的时候要了解其性能带价。
+
+### scope.$evalAsync
+
+源代码如下：
+
+```javascript
+$evalAsync: function(expr) {
+  // 如果
+  if (!$rootScope.$$phase && !$rootScope.$$asyncQueue.length) {
+    $browser.defer(function() {
+      if ($rootScope.$$asyncQueue.length) {
+        $rootScope.$digest();
+      }
+    });
+  }
+
+  // 将表达式保存在 $$asyncQueue，将在 $digest 中调用
+  this.$$asyncQueue.push({scope: this, expression: expr});
+}
+```
 
 
 
