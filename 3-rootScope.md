@@ -211,7 +211,7 @@ $digest: function() {
     watchers,
     // 这是 scope.evalAsync 方法所用的变量，scope.evalAsync 在下面的章节有介绍
     asyncQueue = this.$$asyncQueue,
-    // 这是 scope.postDigenst 方法所用的变量
+    // 这是 scope.postDigenst 方法所用的变量，scope.postDigest 在下面的章节有介绍
     postDigestQueue = this.$$postDigestQueue,
     length,
     dirty, ttl = TTL,
@@ -224,7 +224,7 @@ $digest: function() {
 
   lastDirtyWatch = null;
 
-  // 第一重循环，在所有 scope 中循环
+  // 第一重循环，在所有 scope 中遍历
   do { // "while dirty" loop
     dirty = false;
     current = target;
@@ -242,25 +242,34 @@ $digest: function() {
     }
 
     traverseScopesLoop:
+    // 第二重循环，所有 scope 中遍历
       do { // "traverse the scopes" loop
         if ((watchers = current.$$watchers)) {
           // process our watches
           length = watchers.length;
+          // 第三重循环，在当前 scope 中的 watchers 数组中遍历
           while (length--) {
             try {
+              // 取出一个 watcher
               watch = watchers[length];
               // Most common watches are on primitives, in which case we can short
               // circuit it with === operator, only when === fails do we use .equals
               if (watch) {
+                // 在这里判断当前 watcher 的表达式计算结果是否更新，下面的复杂的判断是为了优化性能而做的分布判断
                 if ((value = watch.get(current)) !== (last = watch.last) &&
                   !(watch.eq
                     ? equals(value, last)
                     : (typeof value == 'number' && typeof last == 'number'
                     && isNaN(value) && isNaN(last)))) {
+                  // 一旦 dirty 为 true，表示将在第一重循环中重新遍历所有 scope 和 watcher 一次
                   dirty = true;
+                  // 一直回到 lastDirtyWatch
                   lastDirtyWatch = watch;
+                  // 更新 watcher.last 为下次数据比较做准备
                   watch.last = watch.eq ? copy(value) : value;
+                  // 在这里执行了 watcher 的回调
                   watch.fn(value, ((last === initWatchVal) ? value : last), current);
+                  // 当第一重循环已经执行了5次以上的时候，将执行日志记录下来，我们的项目整体循环次数越少，性能越高
                   if (ttl < 5) {
                     logIdx = 4 - ttl;
                     if (!watchLog[logIdx]) watchLog[logIdx] = [];
@@ -270,9 +279,9 @@ $digest: function() {
                     logMsg += '; newVal: ' + toJson(value) + '; oldVal: ' + toJson(last);
                     watchLog[logIdx].push(logMsg);
                   }
-                } else if (watch === lastDirtyWatch) {
-                  // If the most recently dirty watcher is now clean, short circuit since the remaining watchers
-                  // have already been tested.
+                } 
+                else if (watch === lastDirtyWatch) {
+                  // 如果第二重循环执行完毕，则退出第二重循环，接下来推出第一重循环
                   dirty = false;
                   break traverseScopesLoop;
                 }
@@ -284,7 +293,8 @@ $digest: function() {
           }
         }
 
-        // chylvina: 本节点以下的深度优先遍历，与 $broadcast 一致。
+        // 本节点以下的深度优先遍历，与 $broadcast 一致。
+        // 很有意思的疯狂警告
         // Insanity Warning: scope depth-first traversal
         // yes, this code is a bit crazy, but it works and we have tests to prove it!
         // this piece should be kept in sync with the traversal in $broadcast
@@ -296,8 +306,7 @@ $digest: function() {
         }
       } while ((current = next));
 
-    // `break traverseScopesLoop;` takes us to here
-
+    // 如果整体循环超过了 ttl(默认为10) 的次数，将报错
     if((dirty || asyncQueue.length) && !(ttl--)) {
       clearPhase();
       throw $rootScopeMinErr('infdig',
@@ -310,6 +319,7 @@ $digest: function() {
 
   clearPhase();
 
+  // scope.postDigest 在下面的章节有介绍
   while(postDigestQueue.length) {
     try {
       postDigestQueue.shift()();
