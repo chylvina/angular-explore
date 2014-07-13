@@ -2,7 +2,7 @@
 
 - scope 的设计目标, MVC vs MVVM vs MVP
 - scope.$new 分析，Angular在什么时候创建了scope，isolate scope的不同
-- scope.$watch, scope.$watchCollection, scope.$digest 分析，工作原理，Angular 的性能瓶颈以及优化策略
+- scope.$watch, scope.$digest 分析，工作原理，Angular 的性能瓶颈以及优化策略
 - scope.$apply, scope.$eval, scope.$evalAsync 区别，使用场景
 - scope.$on, scope.$emit, scope.$broadcast, scope.$destroy 分析
 
@@ -139,9 +139,70 @@ scope 的架构图如下：
 
 可见，一个新的 scope 是在需要动态创建或者销毁 DOM 的情况下创建的，这样可以随着 DOM 的创建或者销毁相应的创建或者销毁对应的 scope。
 
-### scope.$watch
+### scope.$watch 和 scope.$digest
 
-scope.$watch 是实现 AngularJS 的 MVVM 设计模式的核心或者叫引擎。
+scope.$digest 是实现 AngularJS 的 MVVM 设计模式的核心或者叫引擎。如下图所示：
+
+1. 用户的输入在触发后将对某个 scope 中的数据进行相应的修改，然后 AngularJS 将自动调用 scope.$digest 开始进行数据检查
+2. 原先的 handler 在这里变成了 watcher。watcher 是通过 scope.$watch 注册的。AngularJS 将按照深度优先对该 scope 下的所有 watcher 进行遍历
+3. 在 $rootScope.$digest 的过程中会对每个 watcher 进行检查，如果发现 watcher 中表达式的计算结果与上次计算结果不同，则会认为是数据更新，将调用该 watcher 的回调函数
+4. 在调用完该 watcher 的回调函数后，$digest 会在从该 watcher 重新将所有 watcher 遍历一次，即回到步骤 2，直到某一次完全遍历过程中没有发现任何一个 watcher 的数据有更新为止
+
+scope.$watch 的代码如下：
+
+```javascript
+$watch: function(watchExp, listener, objectEquality) {
+	var scope = this,
+	    // watchExp 是一个表达式，该表达式的执行上下文是 scope
+	    // 通过 compileToFn 将该表达式 parse 为可执行的回调函数，可以参考上一篇文章
+	    get = compileToFn(watchExp, 'watch'),
+	    // scope 的所有 watcher 都存在 $$watchers 这个数组中
+	    array = scope.$$watchers,
+	    // watcher 的数据结构
+	    watcher = {
+	      // fn 为出发 watcher 后的回调函数
+	      fn: listener,
+	      // last 为上次一检查结果
+	      last: initWatchVal,
+	      // get 方法用来在数据检查时计算当前表达式结果
+	      get: get,
+	      // 保存表达式
+	      exp: watchExp,
+	      // eq 为布尔值，表示对 watcher 的数据检查是深度数据检查还是简单的数据检查，默认为简单的数据检查
+	      eq: !!objectEquality
+	    };
+
+	lastDirtyWatch = null;
+
+	// in the case user pass string, we need to compile it, do we really need this ?
+	// listener 也可以不是函数而是个表达式，只不过我们一般不会这么用
+	if (!isFunction(listener)) {
+	  var listenFn = compileToFn(listener || noop, 'listener');
+	  watcher.fn = function(newVal, oldVal, scope) {listenFn(scope);};
+	}
+
+	if (typeof watchExp == 'string' && get.constant) {
+	  var originalFn = watcher.fn;
+	  watcher.fn = function(newVal, oldVal, scope) {
+	    originalFn.call(this, newVal, oldVal, scope);
+	    arrayRemove(array, watcher);
+	  };
+	}
+
+	if (!array) {
+	  array = scope.$$watchers = [];
+	}
+	// we use unshift since we use a while loop in $digest for speed.
+	// the while loop reads in reverse order.
+	array.unshift(watcher);
+
+  // 注意这个方法，在调用 $watch 后的返回值也是一个函数，调用这个函数将注销掉当前的这个  watcher
+	return function() {
+	  arrayRemove(array, watcher);
+	  lastDirtyWatch = null;
+	};
+}
+```
 
 
 
