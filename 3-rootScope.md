@@ -412,16 +412,23 @@ $$postDigest : function(fn) {
 
 scope.postDigest 是在 digest 的数据检查 (dirty check) 循环之后执行的表达式队列，我个人理解是允许在所有数据更新后做一些额外的工作。在 AngularJS animate 中做使用了 postDigest 方法。
 
-### scope.$on, scope.$emit, scope.$broadcast
+#### scope.$on, scope.$emit, scope.$broadcast
 
 这些方法用来在 scope 之间进行事件传递，比较简单。
 
-其中 scope.$on 调用后的返回值用来注销该事件。另外，
+其中 scope.$on 调用后的返回值用来注销该事件。另外，在 scope 销毁时一般不需要显式的注销所有的 scope 事件，不会造成内存泄露。
 
 scope.$broadcast 也是使用深度优先遍历方法进行事件的广播。
 
+### 小结
 
+rootScope.js 包括注释共 1000 行左右的代码，实现了 MVVM 的设计模式，以可接受的时间复杂度为代价创造了魔术般的 Angular。强烈推荐深入阅读。
 
+### 下一篇将介绍 compile.js，会涉及到如下内容
+
+- compile 的流程
+- compile, link 的区别
+- 如何 compile, link 一个 directive
 
 
 
