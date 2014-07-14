@@ -3,8 +3,8 @@
 - scope 的设计目标, MVC vs MVVM vs MVP
 - scope.$new 分析，Angular在什么时候创建了scope，isolate scope的不同
 - scope.$watch, scope.$digest 分析，工作原理，Angular 的性能瓶颈以及优化策略
-- scope.$apply, scope.$eval, scope.$evalAsync 区别，使用场景
-- scope.$on, scope.$emit, scope.$broadcast, scope.$destroy 分析
+- scope.$apply, scope.$eval, scope.$evalAsync, scope.postDigest 区别，使用场景
+- scope.$on, scope.$emit, scope.$broadcast 分析
 
 ### scope 的设计目标
 
@@ -375,13 +375,14 @@ $apply: function(expr) {
 ````
 很简单，先使用 scope.$eval 对表达式进行计算，然后调用 $rootScope.$digest 对所有 scope, watcher 进行数据检查。注意是所有，因此使用的时候要了解其性能带价。
 
-### scope.$evalAsync
+#### scope.$evalAsync
 
 源代码如下：
 
 ```javascript
 $evalAsync: function(expr) {
-  // 如果
+  // 如果当前正处于 digest phase，那么 expr 将在当前 digest 循环中立即得到执行
+  // 否则，将会在浏览器的下一帧启动一个新的 degest 循环，在该循环中执行
   if (!$rootScope.$$phase && !$rootScope.$$asyncQueue.length) {
     $browser.defer(function() {
       if ($rootScope.$$asyncQueue.length) {
@@ -395,6 +396,29 @@ $evalAsync: function(expr) {
 }
 ```
 
+因此，scope.$evalAsync 并不确定代码是在当前 digest 循环中完成还是下一个 digest 循环中完成，而且 $evalAsync 还不会触发数据检查(dirty check)。
+
+$timeout 一定会在下一个 degest 循环中完成，而且会强制调用 $rootScpe.$apply。
+
+#### scope.postDigest
+
+源代码如下：
+
+```javascript
+$$postDigest : function(fn) {
+  this.$$postDigestQueue.push(fn);
+}
+```
+
+scope.postDigest 是在 digest 的数据检查 (dirty check) 循环之后执行的表达式队列，我个人理解是允许在所有数据更新后做一些额外的工作。在 AngularJS animate 中做使用了 postDigest 方法。
+
+### scope.$on, scope.$emit, scope.$broadcast
+
+这些方法用来在 scope 之间进行事件传递，比较简单。
+
+其中 scope.$on 调用后的返回值用来注销该事件。另外，
+
+scope.$broadcast 也是使用深度优先遍历方法进行事件的广播。
 
 
 
