@@ -143,6 +143,8 @@ scope 的架构图如下：
 
 scope.$digest 是实现 AngularJS 的 MVVM 设计模式的核心或者叫引擎。如下图所示：
 
+![digest](https://raw.githubusercontent.com/chylvina/angular-explore/doc/digest.png)
+
 1. 用户的输入在触发后将对某个 scope 中的数据进行相应的修改，然后 AngularJS 将自动调用 scope.$digest 开始进行数据检查，在某些时候我们也可以主动调用 scope.$digest
 2. 原先的 handler 在这里变成了 watcher。watcher 是通过 scope.$watch 注册的。AngularJS 将按照深度优先对该 scope 下的所有 scope 进行遍历，在每个 scope 中将对其所有 watcher 进行遍历
 3. 在 $rootScope.$digest 的过程中会对每个 watcher 进行检查，如果发现 watcher 中表达式的计算结果与上次计算结果不同，则会认为是数据更新，将调用该 watcher 的回调函数
